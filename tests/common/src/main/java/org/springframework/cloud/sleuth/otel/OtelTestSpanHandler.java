@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.ReadWriteSpan;
 import io.opentelemetry.sdk.trace.ReadableSpan;
@@ -83,8 +84,8 @@ public class OtelTestSpanHandler implements TestSpanHandler, SpanProcessor, Span
 	}
 
 	@Override
-	public void onStart(ReadWriteSpan span) {
-		spanProcessor.onStart(span);
+	public void onStart(Context parentContext, ReadWriteSpan span) {
+		spanProcessor.onStart(parentContext, span);
 	}
 
 	@Override

@@ -51,7 +51,7 @@ public class OtelSpanCustomizer implements SpanCustomizer {
 	}
 
 	private Span currentSpan() {
-		return this.span != null ? this.span : this.tracer.getCurrentSpan();
+		return this.span != null ? this.span : Span.current();
 	}
 
 	@Override

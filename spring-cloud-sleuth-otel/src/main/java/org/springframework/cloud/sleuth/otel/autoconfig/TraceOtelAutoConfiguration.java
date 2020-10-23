@@ -20,9 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.opentelemetry.baggage.BaggageManager;
-import io.opentelemetry.baggage.spi.BaggageManagerFactory;
-import io.opentelemetry.sdk.baggage.spi.BaggageManagerFactorySdk;
 import io.opentelemetry.sdk.trace.Sampler;
 import io.opentelemetry.sdk.trace.Samplers;
 import io.opentelemetry.sdk.trace.SpanProcessor;
@@ -72,18 +69,6 @@ public class TraceOtelAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	BaggageManagerFactory otelBaggageManagerFactory() {
-		return new BaggageManagerFactorySdk();
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	BaggageManager otelBaggageManager(BaggageManagerFactory baggageManagerFactory) {
-		return baggageManagerFactory.create();
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
 	TraceConfig otelTracerConfig(OtelProperties otelProperties, Sampler sampler) {
 		return TraceConfig.getDefault().toBuilder().setMaxLengthOfAttributeValues(otelProperties.getMaxAttrLength())
 				.setMaxNumberOfAttributes(otelProperties.getMaxAttrs())
@@ -101,7 +86,7 @@ public class TraceOtelAutoConfiguration {
 		tracerSdkObjectProvider.ifAvailable(tracerSdkProvider -> {
 			List<SpanProcessor> processors = spanProcessors.getIfAvailable(ArrayList::new);
 			processors.addAll(spanExporters.getIfAvailable(ArrayList::new).stream()
-					.map(e -> SimpleSpanProcessor.newBuilder(spanExporterCustomizer.customize(e)).build())
+					.map(e -> SimpleSpanProcessor.builder(spanExporterCustomizer.customize(e)).build())
 					.collect(Collectors.toList()));
 			processors.forEach(tracerSdkProvider::addSpanProcessor);
 			tracerSdkProvider.updateActiveTraceConfig(traceConfig);

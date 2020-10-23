@@ -62,7 +62,7 @@ public class ZipkinOtelAutoConfiguration {
 		@ConditionalOnMissingBean
 		ZipkinSpanExporter otelZipkinSpanExporter(ZipkinProperties zipkinProperties,
 				@Qualifier(ZipkinAutoConfiguration.SENDER_BEAN_NAME) Sender sender, Environment env) {
-			return ZipkinSpanExporter.newBuilder().setEndpoint(zipkinProperties.getBaseUrl() + "api/v2/spans")
+			return ZipkinSpanExporter.builder().setEndpoint(zipkinProperties.getBaseUrl() + "api/v2/spans")
 					.setSender(sender).setEncoder(zipkinProperties.getEncoder())
 					.setServiceName(
 							StringUtils.hasText(zipkinProperties.getService().getName())

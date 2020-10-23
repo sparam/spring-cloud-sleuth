@@ -55,7 +55,7 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 
 	ArrayListSpanProcessor spanProcessor = new ArrayListSpanProcessor();
 
-	ContextPropagators defaultContextPropagators = OpenTelemetry.getPropagators();
+	ContextPropagators defaultContextPropagators = OpenTelemetry.getGlobalPropagators();
 
 	ContextPropagators contextPropagators = contextPropagators();
 
@@ -65,28 +65,28 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 
 	io.opentelemetry.trace.Tracer tracer = otelTracer();
 
-	CurrentTraceContext currentTraceContext = new OtelCurrentTraceContext(this.tracer, publisher());
+	OtelCurrentTraceContext currentTraceContext = new OtelCurrentTraceContext(publisher());
 
-	OtelBaggageManager otelBaggageManager = new OtelBaggageManager(this.tracer, OpenTelemetry.getBaggageManager(),
+	OtelBaggageManager otelBaggageManager = new OtelBaggageManager(this.currentTraceContext, this.currentTraceContext,
 			new SleuthBaggageProperties(), publisher());
 
 	io.opentelemetry.trace.Tracer otelTracer() {
 		TracerSdkProvider provider = TracerSdkProvider.builder().build();
 		provider.addSpanProcessor(this.spanProcessor);
-		OpenTelemetry.setPropagators(this.contextPropagators);
+		OpenTelemetry.setGlobalPropagators(this.contextPropagators);
 		provider.updateActiveTraceConfig(TraceConfig.getDefault().toBuilder().setSampler(this.sampler).build());
 		return provider.get("org.springframework.cloud.sleuth");
 	}
 
 	@NotNull
 	protected ContextPropagators contextPropagators() {
-		return DefaultContextPropagators.builder().addTextMapPropagator(B3Propagator.getMultipleHeaderPropagator())
-				.addTextMapPropagator(B3Propagator.getSingleHeaderPropagator()).build();
+		return DefaultContextPropagators.builder()
+				.addTextMapPropagator(B3Propagator.builder().injectMultipleHeaders().build()).build();
 	}
 
 	private void reset() {
 		this.tracer = otelTracer();
-		this.currentTraceContext = new OtelCurrentTraceContext(this.tracer, publisher());
+		this.currentTraceContext = new OtelCurrentTraceContext(publisher());
 	}
 
 	@Override
@@ -113,7 +113,7 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 	@Override
 	public void close() {
 		this.spanProcessor.clear();
-		OpenTelemetry.setPropagators(this.defaultContextPropagators);
+		OpenTelemetry.setGlobalPropagators(this.defaultContextPropagators);
 		this.sampler = Samplers.alwaysOn();
 	}
 
@@ -131,7 +131,7 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 	@Override
 	public CurrentTraceContext currentTraceContext() {
 		reset();
-		return new OtelCurrentTraceContext(this.tracer, publisher());
+		return new OtelCurrentTraceContext(publisher());
 	}
 
 	@Override

@@ -19,10 +19,9 @@ package org.springframework.cloud.sleuth.otel.bridge.http;
 import java.net.URI;
 import java.util.regex.Pattern;
 
-import io.grpc.Context;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.instrumentation.api.tracer.HttpServerTracer;
-import io.opentelemetry.trace.DefaultSpan;
 import io.opentelemetry.trace.Tracer;
 
 import org.springframework.cloud.sleuth.api.Span;
@@ -65,7 +64,7 @@ public class OtelHttpServerHandler
 		String url = request.path();
 		boolean shouldSkip = !StringUtils.isEmpty(url) && this.pattern.matcher(url).matches();
 		if (shouldSkip) {
-			return OtelSpan.fromOtel(DefaultSpan.getInvalid());
+			return OtelSpan.fromOtel(io.opentelemetry.trace.Span.getInvalid());
 		}
 		return OtelSpan.fromOtel(startSpan(request, request, request.method()));
 	}

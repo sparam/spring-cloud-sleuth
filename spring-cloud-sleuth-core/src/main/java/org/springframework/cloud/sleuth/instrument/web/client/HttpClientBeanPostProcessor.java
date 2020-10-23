@@ -65,7 +65,7 @@ class HttpClientBeanPostProcessor implements BeanPostProcessor {
 					.doOnRequestError(new TracingDoOnErrorRequest(springContext))
 					.doOnRequest(new TracingDoOnRequest(springContext)).mapConnect(new TracingMapConnect(() -> {
 						CurrentTraceContext ref = currentContext.get();
-						return ref != null ? ref.get() : null;
+						return ref != null ? ref.context() : null;
 					}));
 		}
 		return bean;

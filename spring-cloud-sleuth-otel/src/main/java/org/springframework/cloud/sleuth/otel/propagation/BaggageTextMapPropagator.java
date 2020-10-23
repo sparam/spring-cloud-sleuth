@@ -21,10 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.grpc.Context;
 import io.opentelemetry.baggage.Baggage;
-import io.opentelemetry.baggage.BaggageUtils;
 import io.opentelemetry.baggage.EntryMetadata;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,17 +39,13 @@ class BaggageTextMapPropagator implements TextMapPropagator {
 
 	private final SleuthBaggageProperties properties;
 
-	private final io.opentelemetry.baggage.BaggageManager otelBaggageManager;
-
 	private final BaggageManager baggageManager;
 
 	private final ApplicationEventPublisher publisher;
 
-	BaggageTextMapPropagator(SleuthBaggageProperties properties,
-			io.opentelemetry.baggage.BaggageManager otelBaggageManager, BaggageManager baggageManager,
+	BaggageTextMapPropagator(SleuthBaggageProperties properties, BaggageManager baggageManager,
 			ApplicationEventPublisher publisher) {
 		this.properties = properties;
-		this.otelBaggageManager = otelBaggageManager;
 		this.baggageManager = baggageManager;
 		this.publisher = publisher;
 	}
@@ -79,11 +74,11 @@ class BaggageTextMapPropagator implements TextMapPropagator {
 		Map<String, String> baggageEntries = this.properties.getRemoteFields().stream()
 				.map(s -> new AbstractMap.SimpleEntry<>(s, getter.get(c, s))).filter(e -> e.getValue() != null)
 				.collect(Collectors.toMap((e) -> e.getKey(), (e) -> e.getValue()));
-		Baggage.Builder builder = otelBaggageManager.baggageBuilder().setParent(context);
-		baggageEntries.forEach((key, value) -> builder.put(key, value,
-				EntryMetadata.create(EntryMetadata.EntryTtl.UNLIMITED_PROPAGATION)));
+		Baggage.Builder builder = Baggage.builder().setParent(context);
+		// TODO: [OTEL] magic string
+		baggageEntries.forEach((key, value) -> builder.put(key, value, EntryMetadata.create("propagation=unlimited")));
 		Baggage baggage = builder.build();
-		Context withBaggage = BaggageUtils.withBaggage(baggage, context);
+		Context withBaggage = context.with(baggage);
 		if (log.isDebugEnabled()) {
 			log.debug("Will propagate new baggage context for entries " + baggageEntries);
 		}

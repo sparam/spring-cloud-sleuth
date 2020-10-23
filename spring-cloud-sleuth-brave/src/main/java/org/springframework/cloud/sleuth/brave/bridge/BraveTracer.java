@@ -36,10 +36,11 @@ public class BraveTracer implements Tracer {
 
 	private final brave.Tracer tracer;
 
-	private final BraveBaggageManager braveBaggageManager = new BraveBaggageManager();
+	private final BraveBaggageManager braveBaggageManager;
 
-	public BraveTracer(brave.Tracer tracer) {
+	public BraveTracer(brave.Tracer tracer, BraveBaggageManager braveBaggageManager) {
 		this.tracer = tracer;
+		this.braveBaggageManager = braveBaggageManager;
 	}
 
 	@Override
@@ -88,8 +89,8 @@ public class BraveTracer implements Tracer {
 		return new BraveSpanBuilder(this.tracer);
 	}
 
-	public static Tracer fromBrave(brave.Tracer tracer) {
-		return new BraveTracer(tracer);
+	public static Tracer fromBrave(brave.Tracer tracer, BraveBaggageManager braveBaggageManager) {
+		return new BraveTracer(tracer, braveBaggageManager);
 	}
 
 	@Override

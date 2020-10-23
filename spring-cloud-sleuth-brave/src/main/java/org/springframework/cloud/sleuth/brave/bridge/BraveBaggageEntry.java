@@ -55,6 +55,10 @@ public class BraveBaggageEntry implements BaggageEntry {
 		this.delegate.updateValue(value);
 	}
 
+	public BaggageField unwrap() {
+		return this.delegate;
+	}
+
 	@Override
 	public void set(TraceContext traceContext, String value) {
 		this.delegate.updateValue(BraveTraceContext.toBrave(traceContext), value);

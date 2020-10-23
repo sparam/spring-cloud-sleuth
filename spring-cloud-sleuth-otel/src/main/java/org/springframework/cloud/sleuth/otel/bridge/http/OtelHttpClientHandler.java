@@ -22,8 +22,8 @@ import java.net.URISyntaxException;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.instrumentation.api.tracer.HttpClientTracer;
-import io.opentelemetry.trace.DefaultSpan;
 import io.opentelemetry.trace.Tracer;
+import io.opentelemetry.trace.TracingContextUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -72,7 +72,7 @@ public class OtelHttpClientHandler extends HttpClientTracer<HttpClientRequest, H
 			if (log.isDebugEnabled()) {
 				log.debug("The sampler function filtered this request, will return an invalid span");
 			}
-			return OtelSpan.fromOtel(DefaultSpan.getInvalid());
+			return OtelSpan.fromOtel(io.opentelemetry.trace.Span.getInvalid());
 		}
 		io.opentelemetry.trace.Span span = startSpan(request);
 		return span(request, span);
@@ -84,13 +84,13 @@ public class OtelHttpClientHandler extends HttpClientTracer<HttpClientRequest, H
 			if (log.isDebugEnabled()) {
 				log.debug("Returning an invalid span since url [" + request.path() + "] is on a list of urls to skip");
 			}
-			return OtelSpan.fromOtel(DefaultSpan.getInvalid());
+			return OtelSpan.fromOtel(io.opentelemetry.trace.Span.getInvalid());
 		}
 		io.opentelemetry.trace.Span span = parent != null ? ((OtelTraceContext) parent).span() : null;
 		if (span == null) {
 			return span(request, startSpan(request));
 		}
-		try (Scope scope = this.tracer.withSpan(span)) {
+		try (Scope scope = TracingContextUtils.currentContextWith(span)) {
 			io.opentelemetry.trace.Span withParent = startSpan(request);
 			return span(request, withParent);
 		}
@@ -137,7 +137,7 @@ public class OtelHttpClientHandler extends HttpClientTracer<HttpClientRequest, H
 
 	@Override
 	public void handleReceive(HttpClientResponse response, Span span) {
-		if (OtelSpan.toOtel(span).equals(DefaultSpan.getInvalid())) {
+		if (OtelSpan.toOtel(span).equals(io.opentelemetry.trace.Span.getInvalid())) {
 			if (log.isDebugEnabled()) {
 				log.debug("Not doing anything cause the span is invalid");
 			}

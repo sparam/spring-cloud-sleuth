@@ -21,14 +21,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.grpc.Context;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.trace.DefaultSpan;
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
 import io.opentelemetry.trace.TraceFlags;
 import io.opentelemetry.trace.TraceState;
-import io.opentelemetry.trace.TracingContextUtils;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -96,9 +94,10 @@ class TraceOtelPropagationAutoConfigurationTests {
 
 		// Extraction
 		Context extract = customPropagator.extract(Context.current(), carrier, Map::get);
-		Span spanFromContext = TracingContextUtils.getSpan(extract);
-		assertThat(spanFromContext.getContext().getTraceIdAsHexString()).isEqualTo("ff000000000000000000000000000041");
-		assertThat(spanFromContext.getContext().getSpanIdAsHexString()).isEqualTo("ff00000000000041");
+		Span spanFromContext = Span.fromContext(extract);
+		assertThat(spanFromContext.getSpanContext().getTraceIdAsHexString())
+				.isEqualTo("ff000000000000000000000000000041");
+		assertThat(spanFromContext.getSpanContext().getSpanIdAsHexString()).isEqualTo("ff00000000000041");
 
 		// Injection
 		Map<String, String> emptyMap = new HashMap<>();
@@ -143,7 +142,7 @@ class CustomPropagator implements TextMapPropagator {
 
 	@Override
 	public <C> void inject(Context context, C carrier, Setter<C> setter) {
-		SpanContext spanContext = TracingContextUtils.getSpan(context).getContext();
+		SpanContext spanContext = Span.fromContext(context).getSpanContext();
 		if (!spanContext.isValid()) {
 			return;
 		}
@@ -155,11 +154,11 @@ class CustomPropagator implements TextMapPropagator {
 	public <C> Context extract(Context context, C carrier, Getter<C> getter) {
 		String traceParent = getter.get(carrier, "myCustomTraceId");
 		if (traceParent == null) {
-			return TracingContextUtils.withSpan(DefaultSpan.create(SpanContext.getInvalid()), context);
+			return Span.getInvalid().storeInContext(context);
 		}
 		String spanId = getter.get(carrier, "myCustomSpanId");
-		return TracingContextUtils.withSpan(DefaultSpan.create(SpanContext.createFromRemoteParent(traceParent, spanId,
-				TraceFlags.getSampled(), TraceState.builder().build())), context);
+		return Span.wrap(SpanContext.createFromRemoteParent(traceParent, spanId, TraceFlags.getSampled(),
+				TraceState.builder().build())).storeInContext(context);
 	}
 
 }

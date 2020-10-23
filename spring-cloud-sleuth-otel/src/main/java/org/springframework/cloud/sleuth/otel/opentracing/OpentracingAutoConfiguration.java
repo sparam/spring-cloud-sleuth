@@ -16,7 +16,6 @@
 
 package org.springframework.cloud.sleuth.otel.opentracing;
 
-import io.opentelemetry.baggage.BaggageManager;
 import io.opentelemetry.opentracingshim.TraceShim;
 import io.opentelemetry.trace.TracerProvider;
 import io.opentracing.Tracer;
@@ -50,8 +49,8 @@ class OpentracingAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	Tracer sleuthOpenTracing(TracerProvider tracerProvider, BaggageManager contextManager) {
-		return TraceShim.createTracerShim(tracerProvider, contextManager);
+	Tracer sleuthOpenTracing(TracerProvider tracerProvider) {
+		return TraceShim.createTracerShim(tracerProvider);
 	}
 
 }

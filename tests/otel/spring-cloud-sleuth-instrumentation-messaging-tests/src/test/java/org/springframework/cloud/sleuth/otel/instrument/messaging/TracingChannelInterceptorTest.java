@@ -16,15 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.instrument.messaging;
 
-import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import io.grpc.Context;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.DefaultContextPropagators;
-import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.extensions.trace.propagation.B3Propagator;
 
 import org.springframework.cloud.sleuth.otel.OtelTestTracing;
@@ -41,22 +34,7 @@ public class TracingChannelInterceptorTest
 			this.testTracing = new OtelTestTracing() {
 				@Override
 				protected ContextPropagators contextPropagators() {
-					return DefaultContextPropagators.builder().addTextMapPropagator(new TextMapPropagator() {
-						@Override
-						public List<String> fields() {
-							return Collections.singletonList("b3");
-						}
-
-						@Override
-						public <C> void inject(Context context, @Nullable C c, Setter<C> setter) {
-							B3Propagator.getSingleHeaderPropagator().inject(context, c, setter);
-						}
-
-						@Override
-						public <C> Context extract(Context context, C c, Getter<C> getter) {
-							return B3Propagator.getSingleHeaderPropagator().extract(context, c, getter);
-						}
-					}).build();
+					return DefaultContextPropagators.builder().addTextMapPropagator(B3Propagator.getInstance()).build();
 				}
 			};
 		}

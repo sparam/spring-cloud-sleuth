@@ -19,8 +19,8 @@ package org.springframework.cloud.sleuth.otel.bridge;
 import java.util.Map;
 
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.trace.DefaultSpan;
 import io.opentelemetry.trace.SpanContext;
+import io.opentelemetry.trace.TracingContextUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -59,8 +59,9 @@ public class OtelTracer implements Tracer {
 	@Override
 	public SpanInScope withSpan(Span span) {
 		return new OtelSpanInScope(
-				tracer.withSpan(span == null ? DefaultSpan.getInvalid() : ((OtelSpan) span).delegate),
-				((OtelSpan) span).delegate.getContext());
+				TracingContextUtils.currentContextWith(
+						span == null ? io.opentelemetry.trace.Span.getInvalid() : ((OtelSpan) span).delegate),
+				((OtelSpan) span).delegate.getSpanContext());
 	}
 
 	@Override
@@ -70,8 +71,8 @@ public class OtelTracer implements Tracer {
 
 	@Override
 	public Span currentSpan() {
-		io.opentelemetry.trace.Span currentSpan = this.tracer.getCurrentSpan();
-		if (currentSpan == null || currentSpan.equals(DefaultSpan.getInvalid())) {
+		io.opentelemetry.trace.Span currentSpan = io.opentelemetry.trace.Span.current();
+		if (currentSpan == null || currentSpan.equals(io.opentelemetry.trace.Span.getInvalid())) {
 			return null;
 		}
 		return new OtelSpan(currentSpan);
@@ -85,7 +86,7 @@ public class OtelTracer implements Tracer {
 	@Override
 	public ScopedSpan startScopedSpan(String name) {
 		io.opentelemetry.trace.Span span = this.tracer.spanBuilder(name).startSpan();
-		return new OtelScopedSpan(span, this.tracer.withSpan(span));
+		return new OtelScopedSpan(span, TracingContextUtils.currentContextWith(span));
 	}
 
 	@Override

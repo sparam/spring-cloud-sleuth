@@ -22,7 +22,7 @@ import io.opentelemetry.common.AttributeKey;
 import io.opentelemetry.common.Attributes;
 import io.opentelemetry.trace.EndSpanOptions;
 import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.StatusCanonicalCode;
+import io.opentelemetry.trace.StatusCode;
 
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.TraceContext;
@@ -52,7 +52,7 @@ public class OtelSpan implements Span {
 		if (this.delegate == null) {
 			return null;
 		}
-		return new OtelTraceContext(this.delegate.getContext(), this.delegate);
+		return new OtelTraceContext(this.delegate.getSpanContext(), this.delegate);
 	}
 
 	@Override
@@ -166,6 +166,16 @@ class SpanFromSpanContext implements io.opentelemetry.trace.Span {
 	}
 
 	@Override
+	public void setStatus(StatusCode canonicalCode) {
+		span.setStatus(canonicalCode);
+	}
+
+	@Override
+	public void setStatus(StatusCode canonicalCode, String description) {
+		span.setStatus(canonicalCode, description);
+	}
+
+	@Override
 	public void setAttribute(AttributeKey<Long> key, int value) {
 		span.setAttribute(key, value);
 	}
@@ -173,16 +183,6 @@ class SpanFromSpanContext implements io.opentelemetry.trace.Span {
 	@Override
 	public <T> void setAttribute(AttributeKey<T> key, T value) {
 		span.setAttribute(key, value);
-	}
-
-	@Override
-	public void setStatus(StatusCanonicalCode canonicalCode) {
-		span.setStatus(canonicalCode);
-	}
-
-	@Override
-	public void setStatus(StatusCanonicalCode canonicalCode, String description) {
-		span.setStatus(canonicalCode, description);
 	}
 
 	@Override
@@ -211,7 +211,7 @@ class SpanFromSpanContext implements io.opentelemetry.trace.Span {
 	}
 
 	@Override
-	public SpanContext getContext() {
+	public SpanContext getSpanContext() {
 		return newSpanContext;
 	}
 

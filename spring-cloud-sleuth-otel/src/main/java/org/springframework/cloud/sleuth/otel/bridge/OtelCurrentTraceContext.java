@@ -16,12 +16,15 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
-import io.opentelemetry.trace.DefaultSpan;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.ContextStorage;
+import io.opentelemetry.context.ContextStorageProvider;
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.Tracer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -37,23 +40,22 @@ import org.springframework.lang.Nullable;
  * @author Marcin Grzejszczak
  * @since 3.0.0
  */
-public class OtelCurrentTraceContext implements CurrentTraceContext {
+public class OtelCurrentTraceContext implements CurrentTraceContext, ContextStorageProvider {
 
 	private static final Log log = LogFactory.getLog(OtelCurrentTraceContext.class);
 
-	final Tracer tracer;
-
 	private final ApplicationEventPublisher publisher;
 
-	public OtelCurrentTraceContext(Tracer tracer, ApplicationEventPublisher publisher) {
-		this.tracer = tracer;
+	private final ContextStorageProvider delegate = ContextStorage::get;
+
+	public OtelCurrentTraceContext(ApplicationEventPublisher publisher) {
 		this.publisher = publisher;
 	}
 
 	@Override
-	public TraceContext get() {
-		Span currentSpan = this.tracer.getCurrentSpan();
-		if (DefaultSpan.getInvalid().equals(currentSpan)) {
+	public TraceContext context() {
+		Span currentSpan = Span.current();
+		if (Span.getInvalid().equals(currentSpan)) {
 			return null;
 		}
 		return new OtelTraceContext(currentSpan);
@@ -62,60 +64,99 @@ public class OtelCurrentTraceContext implements CurrentTraceContext {
 	@Override
 	public Scope newScope(TraceContext context) {
 		OtelTraceContext otelTraceContext = (OtelTraceContext) context;
+		if (otelTraceContext == null) {
+			return io.opentelemetry.context.Scope::noop;
+		}
 		SpanContext spanContext = otelTraceContext.delegate;
 		Span fromContext = new SpanFromSpanContext(((OtelTraceContext) context).span, spanContext, otelTraceContext);
-		this.publisher.publishEvent(new ScopeChanged(this, context));
-		return new OtelScope(new OtelSpanInScope(this.tracer.withSpan(fromContext), spanContext), publisher);
+		io.opentelemetry.context.Scope attach = get().attach(Context.current().with(fromContext));
+		return attach::close;
 	}
 
 	@Override
 	public Scope maybeScope(TraceContext context) {
-		if (log.isTraceEnabled()) {
-			log.trace("Will check if new scope should be created for context [" + context + "]");
-		}
-		if (context == null || SpanContext.getInvalid().equals(OtelTraceContext.toOtel(context))) {
-			if (log.isTraceEnabled()) {
-				log.trace("Invalid context - will return noop");
-			}
-			return new OtelScope.RevertToPrevious(this.publisher, null);
-		}
-		OtelTraceContext otelTraceContext = (OtelTraceContext) context;
-		Span fromContext = new SpanFromSpanContext(otelTraceContext.span, otelTraceContext.delegate, otelTraceContext);
-		Span currentSpan = this.tracer.getCurrentSpan();
-		if (log.isTraceEnabled()) {
-			log.trace("Span from context [" + fromContext + "], current span [" + currentSpan + "]");
-		}
-		if (traceAndSpanIdsAreEqual(fromContext, currentSpan)) {
-			if (log.isTraceEnabled()) {
-				log.trace("Same context as the current one - will return noop");
-			}
-			return new OtelScope.RevertToPrevious(this.publisher, context);
-		}
 		return newScope(context);
 	}
 
+	@Override
+	public <C> Callable<C> wrap(Callable<C> task) {
+		return get().current().wrap(task);
+	}
+
+	@Override
+	public Runnable wrap(Runnable task) {
+		return get().current().wrap(task);
+	}
+
+	@Override
+	public Executor wrap(Executor delegate) {
+		return get().current().wrap(delegate);
+	}
+
+	@Override
+	public ExecutorService wrap(ExecutorService delegate) {
+		return get().current().wrap(delegate);
+	}
+
 	private boolean traceAndSpanIdsAreEqual(Span fromContext, Span currentSpan) {
-		return fromContext.getContext().getTraceIdAsHexString().equals(currentSpan.getContext().getTraceIdAsHexString())
-				&& fromContext.getContext().getSpanIdAsHexString()
-						.equals(currentSpan.getContext().getSpanIdAsHexString());
+		return fromContext.getSpanContext().getTraceIdAsHexString()
+				.equals(currentSpan.getSpanContext().getTraceIdAsHexString())
+				&& fromContext.getSpanContext().getSpanIdAsHexString()
+						.equals(currentSpan.getSpanContext().getSpanIdAsHexString());
+	}
+
+	@Override
+	public ContextStorage get() {
+		ContextStorage threadLocalStorage = this.delegate.get();
+		return new ContextStorage() {
+			@Override
+			public io.opentelemetry.context.Scope attach(Context toAttach) {
+				Context current = current();
+				if (log.isTraceEnabled()) {
+					log.trace("Will check if new scope should be created for context [" + current + "]");
+				}
+				Span fromContext = toAttach != null ? Span.fromContext(toAttach) : Span.getInvalid();
+				Span currentSpan = current != null ? Span.fromContext(current) : Span.getInvalid();
+				// if the context is the same noop scope will be returned
+				io.opentelemetry.context.Scope scope = threadLocalStorage.attach(toAttach);
+				if (traceAndSpanIdsAreEqual(fromContext, currentSpan)) {
+					if (log.isTraceEnabled()) {
+						log.trace("Same context as the current one - will return noop");
+					}
+				}
+				else {
+					publisher.publishEvent(new ScopeChanged(this, fromContext));
+				}
+				return () -> {
+					publisher.publishEvent(new OtelCurrentTraceContext.ScopeClosed(this));
+					publisher.publishEvent(new ScopeChanged(this, currentSpan));
+					scope.close();
+				};
+			}
+
+			@Override
+			public Context current() {
+				return threadLocalStorage.current();
+			}
+		};
 	}
 
 	public static class ScopeChanged extends ApplicationEvent {
 
 		/**
-		 * Trace context corresponding to the changed scope. Might be {@code null}.
+		 * Span corresponding to the changed scope. Might be {@code null}.
 		 */
-		public final TraceContext context;
+		public final Span span;
 
 		/**
 		 * Create a new {@code ApplicationEvent}.
 		 * @param source the object on which the event initially occurred or with which
 		 * the event is associated (never {@code null})
-		 * @param context corresponding trace context
+		 * @param span corresponding trace context
 		 */
-		public ScopeChanged(Object source, @Nullable TraceContext context) {
+		public ScopeChanged(Object source, @Nullable Span span) {
 			super(source);
-			this.context = context;
+			this.span = span;
 		}
 
 	}
@@ -129,53 +170,6 @@ public class OtelCurrentTraceContext implements CurrentTraceContext {
 		 */
 		public ScopeClosed(Object source) {
 			super(source);
-		}
-
-	}
-
-}
-
-class OtelScope implements CurrentTraceContext.Scope {
-
-	private final OtelSpanInScope delegate;
-
-	private final ApplicationEventPublisher publisher;
-
-	OtelScope(OtelSpanInScope delegate, ApplicationEventPublisher publisher) {
-		this.delegate = delegate;
-		this.publisher = publisher;
-	}
-
-	@Override
-	public void close() {
-		this.delegate.close();
-		this.publisher.publishEvent(new OtelCurrentTraceContext.ScopeClosed(this));
-		this.publisher.publishEvent(new OtelBaggageEntry.BaggageScopeEnded(this));
-	}
-
-	static class RevertToPrevious implements CurrentTraceContext.Scope {
-
-		private static final Log log = LogFactory.getLog(RevertToPrevious.class);
-
-		private static final LinkedBlockingDeque<TraceContext> CONTEXTS = new LinkedBlockingDeque<>();
-
-		private final ApplicationEventPublisher publisher;
-
-		RevertToPrevious(ApplicationEventPublisher publisher, TraceContext previous) {
-			this.publisher = publisher;
-			if (previous != null && !previous.equals(CONTEXTS.peekFirst())) {
-				CONTEXTS.addFirst(previous);
-			}
-		}
-
-		@Override
-		public void close() {
-			publisher.publishEvent(new OtelCurrentTraceContext.ScopeClosed(this));
-			TraceContext context = CONTEXTS.pollFirst();
-			if (log.isTraceEnabled()) {
-				log.trace("Reverting scope to [" + context + "]");
-			}
-			publisher.publishEvent(new OtelCurrentTraceContext.ScopeChanged(this, context));
 		}
 
 	}

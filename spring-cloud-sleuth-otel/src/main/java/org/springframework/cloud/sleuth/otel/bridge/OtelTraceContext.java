@@ -18,11 +18,10 @@ package org.springframework.cloud.sleuth.otel.bridge;
 
 import java.util.Objects;
 
-import io.grpc.Context;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.trace.ReadableSpan;
 import io.opentelemetry.trace.Span;
 import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.TracingContextUtils;
 
 import org.springframework.cloud.sleuth.api.TraceContext;
 import org.springframework.lang.Nullable;
@@ -45,7 +44,7 @@ public class OtelTraceContext implements TraceContext {
 	}
 
 	public OtelTraceContext(Span span) {
-		this(span.getContext(), span);
+		this(span.getSpanContext(), span);
 	}
 
 	@Override
@@ -111,7 +110,7 @@ public class OtelTraceContext implements TraceContext {
 		if (context instanceof OtelTraceContext) {
 			Span span = ((OtelTraceContext) context).span;
 			if (span != null) {
-				return TracingContextUtils.withSpan(span, Context.current());
+				return span.storeInContext(Context.current());
 			}
 		}
 		return Context.current();

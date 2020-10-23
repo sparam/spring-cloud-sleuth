@@ -218,7 +218,7 @@ public abstract class TracingJobListenerTest implements TestTracingAwareSupplier
 	void addSpanToJobData(JobDataMap data) {
 		Span span = tracerTest().tracing().tracer().nextSpan().start();
 		try (Tracer.SpanInScope spanInScope = tracerTest().tracing().tracer().withSpan(span)) {
-			tracerTest().tracing().propagator().inject(tracerTest().tracing().currentTraceContext().get(), data,
+			tracerTest().tracing().propagator().inject(tracerTest().tracing().currentTraceContext().context(), data,
 					StringKeyDirtyFlagMap::put);
 		}
 		finally {

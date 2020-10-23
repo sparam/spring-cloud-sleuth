@@ -16,12 +16,13 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import io.opentelemetry.baggage.BaggageManager;
+import io.opentelemetry.context.ContextStorageProvider;
 import io.opentelemetry.context.propagation.ContextPropagators;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.sleuth.api.CurrentTraceContext;
 import org.springframework.cloud.sleuth.api.SpanCustomizer;
@@ -41,7 +42,7 @@ import org.springframework.context.annotation.Configuration;
  * @author Marcin Grzejszczak
  * @since 3.0.0
  */
-@Configuration(proxyBeanMethods = true)
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(value = "spring.sleuth.enabled", matchIfMissing = true)
 @ConditionalOnBean(io.opentelemetry.trace.Tracer.class)
 @AutoConfigureAfter(TraceOtelAutoConfiguration.class)
@@ -49,22 +50,15 @@ import org.springframework.context.annotation.Configuration;
 public class TraceOtelBridgeAutoConfiguation {
 
 	@Bean
-	Tracer otelTracerBridge(io.opentelemetry.trace.Tracer tracer, BaggageManager baggageManager,
-			SleuthBaggageProperties sleuthBaggageProperties, ApplicationEventPublisher publisher) {
-		return new OtelTracer(tracer,
-				otelBaggageManagerBridge(tracer, baggageManager, sleuthBaggageProperties, publisher));
+	Tracer otelTracerBridge(io.opentelemetry.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
+		return new OtelTracer(tracer, otelBaggageManager);
 	}
 
-	@Bean(autowireCandidate = false)
-	OtelBaggageManager otelBaggageManagerBridge(io.opentelemetry.trace.Tracer tracer, BaggageManager baggageManager,
-			SleuthBaggageProperties sleuthBaggageProperties, ApplicationEventPublisher publisher) {
-		return new OtelBaggageManager(tracer, baggageManager, sleuthBaggageProperties, publisher);
-	}
-
+	// Both CurrentTraceContext & ContextStorageProvider
 	@Bean
-	CurrentTraceContext otelCurrentTraceContext(io.opentelemetry.trace.Tracer tracer,
-			ApplicationEventPublisher publisher) {
-		return new OtelCurrentTraceContext(tracer, publisher);
+	@ConditionalOnMissingBean
+	OtelCurrentTraceContext otelCurrentTraceContext(ApplicationEventPublisher publisher) {
+		return new OtelCurrentTraceContext(publisher);
 	}
 
 	@Bean
@@ -75,6 +69,13 @@ public class TraceOtelBridgeAutoConfiguation {
 	@Bean
 	Propagator otelPropagator(ContextPropagators contextPropagators, io.opentelemetry.trace.Tracer tracer) {
 		return new OtelPropagator(contextPropagators, tracer);
+	}
+
+	@Bean
+	OtelBaggageManager otelBaggageManager(CurrentTraceContext currentTraceContext,
+			ContextStorageProvider contextStorageProvider, SleuthBaggageProperties sleuthBaggageProperties,
+			ApplicationEventPublisher publisher) {
+		return new OtelBaggageManager(currentTraceContext, contextStorageProvider, sleuthBaggageProperties, publisher);
 	}
 
 }
