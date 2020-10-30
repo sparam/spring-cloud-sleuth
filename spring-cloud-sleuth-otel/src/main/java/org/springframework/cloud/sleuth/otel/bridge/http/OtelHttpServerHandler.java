@@ -67,7 +67,7 @@ public class OtelHttpServerHandler
 			return OtelSpan.fromOtel(io.opentelemetry.api.trace.Span.getInvalid());
 		}
 		Context context = startSpan(request, request, request.method());
-		return OtelSpan.fromOtel(io.opentelemetry.api.trace.Span.fromContext(context));
+		return OtelSpan.fromOtel(io.opentelemetry.api.trace.Span.fromContext(context), Context.current(), context);
 	}
 
 	@Override

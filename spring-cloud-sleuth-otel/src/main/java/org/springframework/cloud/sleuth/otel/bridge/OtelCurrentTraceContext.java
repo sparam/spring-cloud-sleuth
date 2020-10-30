@@ -16,10 +16,13 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
+import java.util.Deque;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
+import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
@@ -58,6 +61,9 @@ public class OtelCurrentTraceContext implements CurrentTraceContext, ContextStor
 		if (Span.getInvalid().equals(currentSpan)) {
 			return null;
 		}
+		if (currentSpan instanceof SpanFromSpanContext) {
+			return new OtelTraceContext((SpanFromSpanContext) currentSpan);
+		}
 		return new OtelTraceContext(currentSpan);
 	}
 
@@ -67,10 +73,53 @@ public class OtelCurrentTraceContext implements CurrentTraceContext, ContextStor
 		if (otelTraceContext == null) {
 			return io.opentelemetry.context.Scope::noop;
 		}
+		Deque<Context> stack = otelTraceContext.stack;
 		SpanContext spanContext = otelTraceContext.delegate;
-		Span fromContext = new SpanFromSpanContext(((OtelTraceContext) context).span, spanContext, otelTraceContext);
-		io.opentelemetry.context.Scope attach = get().attach(Context.current().with(fromContext));
-		return attach::close;
+		SpanFromSpanContext fromContext = new SpanFromSpanContext(((OtelTraceContext) context).span, spanContext,
+				otelTraceContext);
+		Context old = Context.current();
+		Context newContext = old.with(fromContext);
+		io.opentelemetry.context.Scope attach = get().attach(newContext);
+		boolean addContext = !contextEqual(old, newContext) && !contextEqual(stack.peekFirst(), newContext);
+		if (addContext) {
+			stack.addFirst(newContext);
+		}
+		return () -> {
+			if (addContext) {
+				stack.remove();
+			}
+			attach.close();
+		};
+	}
+
+	private boolean contextEqual(Context old, Context newCtx) {
+		Baggage bg1 = Baggage.fromContextOrNull(newCtx);
+		Baggage bg2 = Baggage.fromContextOrNull(newCtx);
+		boolean baggagesEqual = Objects.equals(bg1, bg2);
+		boolean spansEqual = spansEqual(Span.fromContext(old), Span.fromContext(newCtx));
+		return spansEqual && baggagesEqual;
+	}
+
+	private boolean spansEqual(Span span1, Span span2) {
+		boolean exactlyEqual = Objects.equals(span1, span2);
+		if (exactlyEqual) {
+			return true;
+		}
+		if (oneNull(span1, span2)) {
+			return false;
+		}
+		boolean spansEqual = Objects.equals(span1.getSpanContext().getSpanIdAsHexString(),
+				span2.getSpanContext().getSpanIdAsHexString())
+				&& Objects.equals(span1.getSpanContext().getTraceIdAsHexString(),
+						span2.getSpanContext().getTraceIdAsHexString());
+		if (!spansEqual) {
+			return false;
+		}
+		return true;
+	}
+
+	private boolean oneNull(Span span1, Span span2) {
+		return span1 != null && span2 == null || span1 == null && span2 != null;
 	}
 
 	@Override

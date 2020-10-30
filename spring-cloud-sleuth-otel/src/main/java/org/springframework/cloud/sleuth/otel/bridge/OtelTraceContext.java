@@ -16,6 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Objects;
 
 import io.opentelemetry.api.trace.Span;
@@ -34,24 +36,30 @@ import org.springframework.lang.Nullable;
  */
 public class OtelTraceContext implements TraceContext {
 
+	final Deque<Context> stack;
+
 	final SpanContext delegate;
 
 	final Span span;
 
+	public OtelTraceContext(Deque<Context> stack, SpanContext delegate, @Nullable Span span) {
+		this.stack = stack;
+		this.delegate = delegate;
+		this.span = span;
+	}
+
 	public OtelTraceContext(SpanContext delegate, @Nullable Span span) {
+		this.stack = new ArrayDeque<>();
 		this.delegate = delegate;
 		this.span = span;
 	}
 
 	public OtelTraceContext(Span span) {
-		this(span.getSpanContext(), span);
+		this(new ArrayDeque<>(), span.getSpanContext(), span);
 	}
 
-	public static SpanContext toOtel(TraceContext traceContext) {
-		if (traceContext == null) {
-			return null;
-		}
-		return ((OtelTraceContext) traceContext).delegate;
+	public OtelTraceContext(SpanFromSpanContext span) {
+		this(span.otelTraceContext.stack, span.getSpanContext(), span);
 	}
 
 	public static TraceContext fromOtel(SpanContext traceContext) {
@@ -66,6 +74,14 @@ public class OtelTraceContext implements TraceContext {
 			}
 		}
 		return Context.current();
+	}
+
+	public Deque<Context> stackCopy() {
+		return new ArrayDeque<>(this.stack);
+	}
+
+	void addContext(Context context) {
+		this.stack.addFirst(context);
 	}
 
 	@Override
@@ -110,10 +126,6 @@ public class OtelTraceContext implements TraceContext {
 
 	public Span span() {
 		return this.span;
-	}
-
-	public SpanContext spanContext() {
-		return this.delegate;
 	}
 
 }

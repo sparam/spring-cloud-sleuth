@@ -24,6 +24,7 @@ import org.springframework.cloud.sleuth.api.BaggageEntry;
 import org.springframework.cloud.sleuth.api.ScopedSpan;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.SpanCustomizer;
+import org.springframework.cloud.sleuth.api.TraceContext;
 import org.springframework.cloud.sleuth.api.Tracer;
 
 /**
@@ -101,6 +102,11 @@ public class BraveTracer implements Tracer {
 	@Override
 	public BaggageEntry getBaggage(String name) {
 		return this.braveBaggageManager.getBaggage(name);
+	}
+
+	@Override
+	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
+		return this.braveBaggageManager.getBaggage(traceContext, name);
 	}
 
 	@Override

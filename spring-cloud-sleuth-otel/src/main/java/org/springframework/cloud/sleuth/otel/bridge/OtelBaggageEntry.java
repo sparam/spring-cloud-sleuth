@@ -16,6 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.baggage.Entry;
 import io.opentelemetry.api.trace.Span;
@@ -37,58 +39,80 @@ import org.springframework.context.ApplicationEventPublisher;
  */
 public class OtelBaggageEntry implements BaggageEntry {
 
-	private final CurrentTraceContext currentTraceContext;
+	private final OtelBaggageManager otelBaggageManager;
 
 	private final ContextStorageProvider contextStorageProvider;
+
+	private final CurrentTraceContext currentTraceContext;
 
 	private final ApplicationEventPublisher publisher;
 
 	private final SleuthBaggageProperties sleuthBaggageProperties;
 
-	private final Entry entry;
+	private final AtomicReference<Entry> entry = new AtomicReference<>();
 
-	public OtelBaggageEntry(CurrentTraceContext currentTraceContext, ContextStorageProvider contextStorageProvider,
-			ApplicationEventPublisher publisher, SleuthBaggageProperties sleuthBaggageProperties, Entry entry) {
-		this.currentTraceContext = currentTraceContext;
+	public OtelBaggageEntry(OtelBaggageManager otelBaggageManager, ContextStorageProvider contextStorageProvider,
+			CurrentTraceContext currentTraceContext, ApplicationEventPublisher publisher,
+			SleuthBaggageProperties sleuthBaggageProperties, Entry entry) {
+		this.otelBaggageManager = otelBaggageManager;
 		this.contextStorageProvider = contextStorageProvider;
+		this.currentTraceContext = currentTraceContext;
 		this.publisher = publisher;
 		this.sleuthBaggageProperties = sleuthBaggageProperties;
-		this.entry = entry;
+		this.entry.set(entry);
 	}
 
 	@Override
 	public String name() {
-		return this.entry.getKey();
+		return entry().getKey();
 	}
 
 	@Override
 	public String get() {
-		return Baggage.current().getEntryValue(this.entry.getKey());
+		return this.otelBaggageManager.currentBaggage().getEntryValue(entry().getKey());
 	}
 
 	@Override
 	public String get(TraceContext traceContext) {
-		try (CurrentTraceContext.Scope scope = this.currentTraceContext.maybeScope(traceContext)) {
-			return get();
+		Entry entry = this.otelBaggageManager.getEntry((OtelTraceContext) traceContext, entry().getKey());
+		if (entry == null) {
+			return null;
 		}
+		return entry.getValue();
 	}
 
 	@Override
 	public void set(String value) {
+		doSet(this.currentTraceContext.context(), value);
+	}
+
+	private void doSet(TraceContext context, String value) {
 		io.opentelemetry.api.baggage.Baggage baggage = Baggage.builder()
-				.put(this.entry.getKey(), value, this.entry.getEntryMetadata()).build();
+				.put(entry().getKey(), value, entry().getEntryMetadata()).build();
+		Span current = Span.current();
 		if (this.sleuthBaggageProperties.getTagFields().stream().map(String::toLowerCase)
-				.anyMatch(s -> s.equals(this.entry.getKey()))) {
-			Span.current().setAttribute(this.entry.getKey(), value);
+				.anyMatch(s -> s.equals(entry().getKey()))) {
+			current.setAttribute(entry().getKey(), value);
 		}
-		this.publisher.publishEvent(new BaggageChanged(this, baggage, this.entry.getKey(), value));
-		this.contextStorageProvider.get().attach(Context.current().with(baggage));
+		this.publisher.publishEvent(new BaggageChanged(this, baggage, entry().getKey(), value));
+		Context withBaggage = Context.current().with(baggage);
+		if (context != null) {
+			OtelTraceContext traceContext = (OtelTraceContext) context;
+			traceContext.addContext(withBaggage);
+		}
+		Entry previous = entry();
+		this.entry.set(Entry.create(previous.getKey(), value, previous.getEntryMetadata()));
+		this.contextStorageProvider.get().attach(withBaggage);
+	}
+
+	private Entry entry() {
+		return this.entry.get();
 	}
 
 	@Override
 	public void set(TraceContext traceContext, String value) {
 		try (CurrentTraceContext.Scope scope = this.currentTraceContext.maybeScope(traceContext)) {
-			set(value);
+			doSet(traceContext, value);
 		}
 	}
 

@@ -16,7 +16,11 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +33,7 @@ import io.opentelemetry.context.ContextStorageProvider;
 import org.springframework.cloud.sleuth.api.BaggageEntry;
 import org.springframework.cloud.sleuth.api.BaggageManager;
 import org.springframework.cloud.sleuth.api.CurrentTraceContext;
+import org.springframework.cloud.sleuth.api.TraceContext;
 import org.springframework.cloud.sleuth.autoconfig.SleuthBaggageProperties;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -62,17 +67,49 @@ public class OtelBaggageManager {
 		return baggage;
 	}
 
-	private io.opentelemetry.api.baggage.Baggage currentBaggage() {
-		return Baggage.fromContext(Context.current());
+	CompositeBaggage currentBaggage() {
+		OtelTraceContext traceContext = (OtelTraceContext) currentTraceContext.context();
+		Context context = Context.current();
+		Deque<Context> stack = traceContext != null ? traceContext.stackCopy() : new ArrayDeque<>();
+		stack.addFirst(context);
+		return new CompositeBaggage(stack);
 	}
 
 	public BaggageEntry getBaggage(String name) {
-		io.opentelemetry.api.baggage.Baggage baggage = currentBaggage();
-		Entry entry = entryForName(name, baggage);
+		Entry entry = getBaggage(name, currentBaggage());
+		return createNewEntryIfMissing(name, entry);
+	}
+
+	protected BaggageEntry createNewEntryIfMissing(String name, Entry entry) {
 		if (entry == null) {
 			return createBaggage(name);
 		}
 		return otelBaggage(entry);
+	}
+
+	private Entry getBaggage(String name, io.opentelemetry.api.baggage.Baggage baggage) {
+		return entryForName(name, baggage);
+	}
+
+	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
+		Entry entry = getEntry((OtelTraceContext) traceContext, name);
+		return createNewEntryIfMissing(name, entry);
+	}
+
+	protected Entry getEntry(OtelTraceContext traceContext, String name) {
+		OtelTraceContext context = traceContext;
+		Deque<Context> stack = context.stackCopy();
+		Context ctx = removeFirst(stack);
+		Entry entry = null;
+		while (ctx != null && entry == null) {
+			entry = getBaggage(name, Baggage.fromContext(ctx));
+			ctx = removeFirst(stack);
+		}
+		return entry;
+	}
+
+	protected Context removeFirst(Deque<Context> stack) {
+		return stack.isEmpty() ? null : stack.removeFirst();
 	}
 
 	private Entry entryForName(String name, io.opentelemetry.api.baggage.Baggage baggage) {
@@ -81,7 +118,7 @@ public class OtelBaggageManager {
 	}
 
 	private BaggageEntry otelBaggage(Entry entry) {
-		return new OtelBaggageEntry(this.currentTraceContext, this.contextStorageProvider, this.publisher,
+		return new OtelBaggageEntry(this, this.contextStorageProvider, this.currentTraceContext, this.publisher,
 				this.sleuthBaggageProperties, entry);
 	}
 
@@ -95,7 +132,7 @@ public class OtelBaggageManager {
 				.anyMatch(s -> s.equals(name.toLowerCase()));
 		EntryMetadata entryMetadata = EntryMetadata.create(propagationString(remoteField));
 		Entry entry = Entry.create(name, value, entryMetadata);
-		return new OtelBaggageEntry(this.currentTraceContext, this.contextStorageProvider, this.publisher,
+		return new OtelBaggageEntry(this, this.contextStorageProvider, this.currentTraceContext, this.publisher,
 				this.sleuthBaggageProperties, entry);
 	}
 
@@ -106,6 +143,42 @@ public class OtelBaggageManager {
 			propagation = "propagation=unlimited";
 		}
 		return propagation;
+	}
+
+}
+
+class CompositeBaggage implements io.opentelemetry.api.baggage.Baggage {
+
+	private final Deque<Context> stack;
+
+	CompositeBaggage(Deque<Context> stack) {
+		this.stack = stack;
+	}
+
+	@Override
+	public Collection<Entry> getEntries() {
+		// parent baggage foo=bar
+		// child baggage foo=baz - we want the last one to override the previous one
+		Map<String, Entry> map = new HashMap<>();
+		Iterator<Context> iterator = this.stack.descendingIterator();
+		while (iterator.hasNext()) {
+			Context next = iterator.next();
+			Baggage baggage = Baggage.fromContext(next);
+			Collection<Entry> entries = baggage.getEntries();
+			entries.forEach(entry -> map.put(entry.getKey(), entry));
+		}
+		return map.values();
+	}
+
+	@Override
+	public String getEntryValue(String entryKey) {
+		return getEntries().stream().filter(entry -> entryKey.equals(entry.getKey())).map(Entry::getValue).findFirst()
+				.orElse(null);
+	}
+
+	@Override
+	public Builder toBuilder() {
+		return Baggage.builder();
 	}
 
 }

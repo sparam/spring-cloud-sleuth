@@ -23,6 +23,7 @@ import org.springframework.cloud.sleuth.api.BaggageEntry;
 import org.springframework.cloud.sleuth.api.ScopedSpan;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.SpanCustomizer;
+import org.springframework.cloud.sleuth.api.TraceContext;
 import org.springframework.cloud.sleuth.api.Tracer;
 
 /**
@@ -75,6 +76,11 @@ public class NoOpTracer implements Tracer {
 
 	@Override
 	public BaggageEntry getBaggage(String name) {
+		return new NoOpBaggageEntry();
+	}
+
+	@Override
+	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
 		return new NoOpBaggageEntry();
 	}
 

@@ -16,6 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Objects;
 
 import io.opentelemetry.api.common.AttributeKey;
@@ -23,6 +25,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.EndSpanOptions;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Context;
 
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.TraceContext;
@@ -38,8 +41,25 @@ public class OtelSpan implements Span {
 
 	final io.opentelemetry.api.trace.Span delegate;
 
+	private final Deque<Context> stack;
+
 	public OtelSpan(io.opentelemetry.api.trace.Span delegate) {
 		this.delegate = delegate;
+		if (delegate instanceof SpanFromSpanContext) {
+			SpanFromSpanContext fromSpanContext = (SpanFromSpanContext) delegate;
+			this.stack = fromSpanContext.otelTraceContext.stack;
+		}
+		else {
+			this.stack = new ArrayDeque<>();
+		}
+	}
+
+	public OtelSpan(io.opentelemetry.api.trace.Span delegate, Context... contexts) {
+		this.delegate = delegate;
+		this.stack = new ArrayDeque<>();
+		for (Context ctx : contexts) {
+			this.stack.addFirst(ctx);
+		}
 	}
 
 	public static io.opentelemetry.api.trace.Span toOtel(Span span) {
@@ -48,6 +68,18 @@ public class OtelSpan implements Span {
 
 	public static Span fromOtel(io.opentelemetry.api.trace.Span span) {
 		return new OtelSpan(span);
+	}
+
+	public static Span fromOtel(io.opentelemetry.api.trace.Span span, Context... contexts) {
+		return new OtelSpan(span, contexts);
+	}
+
+	void addContext(Context context) {
+		this.stack.addFirst(context);
+	}
+
+	void removeContext() {
+		this.stack.removeFirst();
 	}
 
 	@Override
@@ -60,7 +92,7 @@ public class OtelSpan implements Span {
 		if (this.delegate == null) {
 			return null;
 		}
-		return new OtelTraceContext(this.delegate.getSpanContext(), this.delegate);
+		return new OtelTraceContext(this.stack, this.delegate.getSpanContext(), this.delegate);
 	}
 
 	@Override

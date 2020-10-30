@@ -24,6 +24,7 @@ import brave.baggage.BaggageField;
 
 import org.springframework.cloud.sleuth.api.BaggageEntry;
 import org.springframework.cloud.sleuth.api.BaggageManager;
+import org.springframework.cloud.sleuth.api.TraceContext;
 
 /**
  * Brave implementation of a {@link BaggageManager}. Not implementing the interface
@@ -42,6 +43,10 @@ public class BraveBaggageManager implements Closeable {
 
 	public BaggageEntry getBaggage(String name) {
 		return createBaggage(name);
+	}
+
+	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
+		return new BraveBaggageEntry(BaggageField.getByName(BraveTraceContext.toBrave(traceContext), name));
 	}
 
 	public BaggageEntry createBaggage(String name) {

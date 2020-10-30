@@ -40,6 +40,14 @@ public interface BaggageManager {
 	BaggageEntry getBaggage(String name);
 
 	/**
+	 * Retrieves {@link BaggageEntry} for the given name.
+	 * @param traceContext trace context with baggage attached to it
+	 * @param name baggage name
+	 * @return baggage or {@code null} if not present
+	 */
+	BaggageEntry getBaggage(TraceContext traceContext, String name);
+
+	/**
 	 * Creates a new {@link BaggageEntry} entry for the given name or returns an existing
 	 * one if it's already present.
 	 * @param name baggage name
