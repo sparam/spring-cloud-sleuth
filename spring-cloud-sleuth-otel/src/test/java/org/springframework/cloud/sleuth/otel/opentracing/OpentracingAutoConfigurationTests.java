@@ -16,7 +16,7 @@
 
 package org.springframework.cloud.sleuth.otel.opentracing;
 
-import io.opentelemetry.trace.Tracer;
+import io.opentelemetry.api.trace.Tracer;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;

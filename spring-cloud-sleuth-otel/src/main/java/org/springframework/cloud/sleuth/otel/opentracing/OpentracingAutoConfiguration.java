@@ -16,8 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.opentracing;
 
+import io.opentelemetry.api.trace.TracerProvider;
 import io.opentelemetry.opentracingshim.TraceShim;
-import io.opentelemetry.trace.TracerProvider;
 import io.opentracing.Tracer;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -41,7 +41,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(value = "spring.sleuth.opentracing.enabled", matchIfMissing = true)
-@ConditionalOnBean(io.opentelemetry.trace.Tracer.class)
+@ConditionalOnBean(io.opentelemetry.api.trace.Tracer.class)
 @ConditionalOnClass(TraceShim.class)
 @AutoConfigureAfter(TraceOtelAutoConfiguration.class)
 @EnableConfigurationProperties(SleuthOpentracingProperties.class)

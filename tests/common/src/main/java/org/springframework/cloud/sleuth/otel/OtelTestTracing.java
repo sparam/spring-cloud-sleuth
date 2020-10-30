@@ -19,14 +19,13 @@ package org.springframework.cloud.sleuth.otel;
 import java.io.Closeable;
 import java.util.regex.Pattern;
 
-import io.opentelemetry.OpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.DefaultContextPropagators;
 import io.opentelemetry.extensions.trace.propagation.B3Propagator;
-import io.opentelemetry.sdk.trace.Sampler;
-import io.opentelemetry.sdk.trace.Samplers;
 import io.opentelemetry.sdk.trace.TracerSdkProvider;
 import io.opentelemetry.sdk.trace.config.TraceConfig;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
 import org.jetbrains.annotations.NotNull;
 
 import org.springframework.cloud.sleuth.api.CurrentTraceContext;
@@ -59,18 +58,18 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 
 	ContextPropagators contextPropagators = contextPropagators();
 
-	Sampler sampler = Samplers.alwaysOn();
+	Sampler sampler = Sampler.alwaysOn();
 
 	HttpRequestParser clientRequestParser;
 
-	io.opentelemetry.trace.Tracer tracer = otelTracer();
+	io.opentelemetry.api.trace.Tracer tracer = otelTracer();
 
 	OtelCurrentTraceContext currentTraceContext = new OtelCurrentTraceContext(publisher());
 
 	OtelBaggageManager otelBaggageManager = new OtelBaggageManager(this.currentTraceContext, this.currentTraceContext,
 			new SleuthBaggageProperties(), publisher());
 
-	io.opentelemetry.trace.Tracer otelTracer() {
+	io.opentelemetry.api.trace.Tracer otelTracer() {
 		TracerSdkProvider provider = TracerSdkProvider.builder().build();
 		provider.addSpanProcessor(this.spanProcessor);
 		OpenTelemetry.setGlobalPropagators(this.contextPropagators);
@@ -91,7 +90,7 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 
 	@Override
 	public TracerAware sampler(TraceSampler sampler) {
-		this.sampler = sampler == TraceSampler.ON ? Samplers.alwaysOn() : Samplers.alwaysOff();
+		this.sampler = sampler == TraceSampler.ON ? Sampler.alwaysOn() : Sampler.alwaysOff();
 		return this;
 	}
 
@@ -114,7 +113,7 @@ public class OtelTestTracing implements TracerAware, TestTracingAware, TestTraci
 	public void close() {
 		this.spanProcessor.clear();
 		OpenTelemetry.setGlobalPropagators(this.defaultContextPropagators);
-		this.sampler = Samplers.alwaysOn();
+		this.sampler = Sampler.alwaysOn();
 	}
 
 	@Override

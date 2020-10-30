@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.opentelemetry.common.AttributeConsumer;
-import io.opentelemetry.common.AttributeKey;
-import io.opentelemetry.common.Attributes;
+import io.opentelemetry.api.common.AttributeConsumer;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.trace.data.SpanData;
 
 import org.springframework.cloud.sleuth.api.Span;
@@ -44,6 +44,10 @@ public class OtelFinishedSpan implements FinishedSpan {
 
 	public OtelFinishedSpan(SpanData spanData) {
 		this.spanData = spanData;
+	}
+
+	public static FinishedSpan fromOtel(SpanData span) {
+		return new OtelFinishedSpan(span);
 	}
 
 	@Override
@@ -117,7 +121,7 @@ public class OtelFinishedSpan implements FinishedSpan {
 
 	@Override
 	public Span.Kind kind() {
-		if (this.spanData.getKind() == io.opentelemetry.trace.Span.Kind.INTERNAL) {
+		if (this.spanData.getKind() == io.opentelemetry.api.trace.Span.Kind.INTERNAL) {
 			return null;
 		}
 		return Span.Kind.valueOf(this.spanData.getKind().name());
@@ -131,10 +135,6 @@ public class OtelFinishedSpan implements FinishedSpan {
 	@Override
 	public String toString() {
 		return "SpanDataToReportedSpan{" + "spanData=" + spanData + ", tags=" + tags + '}';
-	}
-
-	public static FinishedSpan fromOtel(SpanData span) {
-		return new OtelFinishedSpan(span);
 	}
 
 	public static class AssertingThrowable extends Throwable {

@@ -20,9 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.opentelemetry.baggage.BaggageUtils;
-import io.opentelemetry.baggage.Entry;
-import io.opentelemetry.baggage.EntryMetadata;
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.api.baggage.Entry;
+import io.opentelemetry.api.baggage.EntryMetadata;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextStorageProvider;
 
@@ -62,12 +62,12 @@ public class OtelBaggageManager {
 		return baggage;
 	}
 
-	private io.opentelemetry.baggage.Baggage currentBaggage() {
-		return BaggageUtils.getBaggage(Context.current());
+	private io.opentelemetry.api.baggage.Baggage currentBaggage() {
+		return Baggage.fromContext(Context.current());
 	}
 
 	public BaggageEntry getBaggage(String name) {
-		io.opentelemetry.baggage.Baggage baggage = currentBaggage();
+		io.opentelemetry.api.baggage.Baggage baggage = currentBaggage();
 		Entry entry = entryForName(name, baggage);
 		if (entry == null) {
 			return createBaggage(name);
@@ -75,7 +75,7 @@ public class OtelBaggageManager {
 		return otelBaggage(entry);
 	}
 
-	private Entry entryForName(String name, io.opentelemetry.baggage.Baggage baggage) {
+	private Entry entryForName(String name, io.opentelemetry.api.baggage.Baggage baggage) {
 		return baggage.getEntries().stream().filter(e -> e.getKey().toLowerCase().equals(name.toLowerCase()))
 				.findFirst().orElse(null);
 	}

@@ -85,6 +85,10 @@ public class ZipkinAutoConfigurationTests {
 
 	public MockWebServer server = new MockWebServer();
 
+	MockEnvironment environment = new MockEnvironment();
+
+	AnnotationConfigApplicationContext context;
+
 	@BeforeEach
 	void setup() throws IOException {
 		server.start();
@@ -94,10 +98,6 @@ public class ZipkinAutoConfigurationTests {
 	void clean() throws IOException {
 		server.close();
 	}
-
-	MockEnvironment environment = new MockEnvironment();
-
-	AnnotationConfigApplicationContext context;
 
 	@AfterEach
 	public void close() {

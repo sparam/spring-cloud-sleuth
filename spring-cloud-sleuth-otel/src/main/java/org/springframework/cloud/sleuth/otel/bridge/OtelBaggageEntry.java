@@ -16,12 +16,11 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import io.opentelemetry.baggage.Baggage;
-import io.opentelemetry.baggage.BaggageUtils;
-import io.opentelemetry.baggage.Entry;
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.api.baggage.Entry;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextStorageProvider;
-import io.opentelemetry.trace.Span;
 
 import org.springframework.cloud.sleuth.api.BaggageEntry;
 import org.springframework.cloud.sleuth.api.CurrentTraceContext;
@@ -64,7 +63,7 @@ public class OtelBaggageEntry implements BaggageEntry {
 
 	@Override
 	public String get() {
-		return BaggageUtils.getCurrentBaggage().getEntryValue(this.entry.getKey());
+		return Baggage.current().getEntryValue(this.entry.getKey());
 	}
 
 	@Override
@@ -76,7 +75,7 @@ public class OtelBaggageEntry implements BaggageEntry {
 
 	@Override
 	public void set(String value) {
-		io.opentelemetry.baggage.Baggage baggage = Baggage.builder()
+		io.opentelemetry.api.baggage.Baggage baggage = Baggage.builder()
 				.put(this.entry.getKey(), value, this.entry.getEntryMetadata()).build();
 		if (this.sleuthBaggageProperties.getTagFields().stream().map(String::toLowerCase)
 				.anyMatch(s -> s.equals(this.entry.getKey()))) {

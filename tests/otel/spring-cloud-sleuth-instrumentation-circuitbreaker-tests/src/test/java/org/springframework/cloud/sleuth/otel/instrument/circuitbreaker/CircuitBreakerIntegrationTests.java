@@ -16,7 +16,7 @@
 
 package org.springframework.cloud.sleuth.otel.instrument.circuitbreaker;
 
-import io.opentelemetry.common.AttributeKey;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.sdk.trace.Sampler;
 import io.opentelemetry.sdk.trace.Samplers;
 import org.assertj.core.api.BDDAssertions;

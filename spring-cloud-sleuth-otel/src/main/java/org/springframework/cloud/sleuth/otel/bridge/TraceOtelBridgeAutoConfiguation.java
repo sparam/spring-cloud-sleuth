@@ -44,13 +44,13 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(value = "spring.sleuth.enabled", matchIfMissing = true)
-@ConditionalOnBean(io.opentelemetry.trace.Tracer.class)
+@ConditionalOnBean(io.opentelemetry.api.trace.Tracer.class)
 @AutoConfigureAfter(TraceOtelAutoConfiguration.class)
 @AutoConfigureBefore(TraceAutoConfiguration.class)
 public class TraceOtelBridgeAutoConfiguation {
 
 	@Bean
-	Tracer otelTracerBridge(io.opentelemetry.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
+	Tracer otelTracerBridge(io.opentelemetry.api.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
 		return new OtelTracer(tracer, otelBaggageManager);
 	}
 
@@ -62,12 +62,12 @@ public class TraceOtelBridgeAutoConfiguation {
 	}
 
 	@Bean
-	SpanCustomizer otelSpanCustomizer(io.opentelemetry.trace.Tracer tracer) {
+	SpanCustomizer otelSpanCustomizer(io.opentelemetry.api.trace.Tracer tracer) {
 		return new OtelSpanCustomizer(tracer);
 	}
 
 	@Bean
-	Propagator otelPropagator(ContextPropagators contextPropagators, io.opentelemetry.trace.Tracer tracer) {
+	Propagator otelPropagator(ContextPropagators contextPropagators, io.opentelemetry.api.trace.Tracer tracer) {
 		return new OtelPropagator(contextPropagators, tracer);
 	}
 

@@ -18,9 +18,8 @@ package org.springframework.cloud.sleuth.otel.bridge;
 
 import java.util.Map;
 
+import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.trace.SpanContext;
-import io.opentelemetry.trace.TracingContextUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -38,13 +37,17 @@ import org.springframework.cloud.sleuth.api.Tracer;
  */
 public class OtelTracer implements Tracer {
 
-	private final io.opentelemetry.trace.Tracer tracer;
+	private final io.opentelemetry.api.trace.Tracer tracer;
 
 	private final OtelBaggageManager otelBaggageManager;
 
-	public OtelTracer(io.opentelemetry.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
+	public OtelTracer(io.opentelemetry.api.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
 		this.tracer = tracer;
 		this.otelBaggageManager = otelBaggageManager;
+	}
+
+	public static Tracer fromOtel(io.opentelemetry.api.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
+		return new OtelTracer(tracer, otelBaggageManager);
 	}
 
 	@Override
@@ -58,10 +61,9 @@ public class OtelTracer implements Tracer {
 
 	@Override
 	public SpanInScope withSpan(Span span) {
-		return new OtelSpanInScope(
-				TracingContextUtils.currentContextWith(
-						span == null ? io.opentelemetry.trace.Span.getInvalid() : ((OtelSpan) span).delegate),
-				((OtelSpan) span).delegate.getSpanContext());
+		io.opentelemetry.api.trace.Span delegate = span == null ? io.opentelemetry.api.trace.Span.getInvalid()
+				: ((OtelSpan) span).delegate;
+		return new OtelSpanInScope(delegate.makeCurrent(), delegate.getSpanContext());
 	}
 
 	@Override
@@ -71,8 +73,8 @@ public class OtelTracer implements Tracer {
 
 	@Override
 	public Span currentSpan() {
-		io.opentelemetry.trace.Span currentSpan = io.opentelemetry.trace.Span.current();
-		if (currentSpan == null || currentSpan.equals(io.opentelemetry.trace.Span.getInvalid())) {
+		io.opentelemetry.api.trace.Span currentSpan = io.opentelemetry.api.trace.Span.current();
+		if (currentSpan == null || currentSpan.equals(io.opentelemetry.api.trace.Span.getInvalid())) {
 			return null;
 		}
 		return new OtelSpan(currentSpan);
@@ -85,17 +87,13 @@ public class OtelTracer implements Tracer {
 
 	@Override
 	public ScopedSpan startScopedSpan(String name) {
-		io.opentelemetry.trace.Span span = this.tracer.spanBuilder(name).startSpan();
-		return new OtelScopedSpan(span, TracingContextUtils.currentContextWith(span));
+		io.opentelemetry.api.trace.Span span = this.tracer.spanBuilder(name).startSpan();
+		return new OtelScopedSpan(span, span.makeCurrent());
 	}
 
 	@Override
 	public Span.Builder spanBuilder() {
 		return new OtelSpanBuilder(this.tracer.spanBuilder(""));
-	}
-
-	public static Tracer fromOtel(io.opentelemetry.trace.Tracer tracer, OtelBaggageManager otelBaggageManager) {
-		return new OtelTracer(tracer, otelBaggageManager);
 	}
 
 	@Override

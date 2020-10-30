@@ -16,8 +16,8 @@
 
 package org.springframework.cloud.sleuth.zipkin2;
 
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.exporters.zipkin.ZipkinSpanExporter;
-import io.opentelemetry.trace.Tracer;
 import zipkin2.reporter.Sender;
 
 import org.springframework.beans.factory.annotation.Qualifier;

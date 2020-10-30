@@ -26,8 +26,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.opentelemetry.OpenTelemetry;
-import io.opentelemetry.baggage.propagation.W3CBaggagePropagator;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.baggage.propagation.W3CBaggagePropagator;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.propagation.HttpTraceContext;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.DefaultContextPropagators;
@@ -36,9 +39,6 @@ import io.opentelemetry.extensions.trace.propagation.AwsXRayPropagator;
 import io.opentelemetry.extensions.trace.propagation.B3Propagator;
 import io.opentelemetry.extensions.trace.propagation.JaegerPropagator;
 import io.opentelemetry.extensions.trace.propagation.OtTracerPropagator;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.Tracer;
-import io.opentelemetry.trace.propagation.HttpTraceContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -209,11 +209,6 @@ class CompositeTextMapPropagator implements TextMapPropagator {
 			this.allFields = Collections.unmodifiableList(getAllFields(this.textPropagators));
 		}
 
-		@Override
-		public List<String> fields() {
-			return allFields;
-		}
-
 		private static List<String> getAllFields(TextMapPropagator[] textPropagators) {
 			Set<String> fields = new LinkedHashSet<>();
 			for (int i = 0; i < textPropagators.length; i++) {
@@ -221,6 +216,11 @@ class CompositeTextMapPropagator implements TextMapPropagator {
 			}
 
 			return new ArrayList<>(fields);
+		}
+
+		@Override
+		public List<String> fields() {
+			return allFields;
 		}
 
 		@Override

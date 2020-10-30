@@ -20,17 +20,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.opentelemetry.sdk.trace.Sampler;
-import io.opentelemetry.sdk.trace.Samplers;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerProvider;
+import io.opentelemetry.api.trace.spi.TracerProviderFactory;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.TracerSdkProvider;
 import io.opentelemetry.sdk.trace.config.TraceConfig;
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
 import io.opentelemetry.sdk.trace.spi.TracerProviderFactorySdk;
-import io.opentelemetry.trace.Tracer;
-import io.opentelemetry.trace.TracerProvider;
-import io.opentelemetry.trace.spi.TracerProviderFactory;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -97,7 +96,7 @@ public class TraceOtelAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	Sampler otelSampler(OtelProperties otelProperties) {
-		return Samplers.traceIdRatioBased(otelProperties.getTraceIdRatioBased());
+		return Sampler.traceIdRatioBased(otelProperties.getTraceIdRatioBased());
 	}
 
 	@Bean

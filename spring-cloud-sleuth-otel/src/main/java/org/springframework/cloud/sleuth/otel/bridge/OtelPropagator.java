@@ -18,10 +18,10 @@ package org.springframework.cloud.sleuth.otel.bridge;
 
 import java.util.List;
 
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.trace.Tracer;
 
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.TraceContext;
@@ -58,8 +58,8 @@ public class OtelPropagator implements Propagator {
 	@Override
 	public <C> Span.Builder extract(C carrier, Getter<C> getter) {
 		Context extracted = this.propagator.extract(Context.current(), carrier, getter::get);
-		io.opentelemetry.trace.Span span = io.opentelemetry.trace.Span.fromContextOrNull(extracted);
-		if (span == null || span.equals(io.opentelemetry.trace.Span.getInvalid())) {
+		io.opentelemetry.api.trace.Span span = io.opentelemetry.api.trace.Span.fromContextOrNull(extracted);
+		if (span == null || span.equals(io.opentelemetry.api.trace.Span.getInvalid())) {
 			return OtelSpanBuilder.fromOtel(tracer.spanBuilder(""));
 		}
 		return OtelSpanBuilder.fromOtel(this.tracer.spanBuilder("").setParent(extracted));

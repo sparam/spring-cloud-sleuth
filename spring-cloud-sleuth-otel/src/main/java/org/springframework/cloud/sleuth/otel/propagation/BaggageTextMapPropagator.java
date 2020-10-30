@@ -21,8 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.opentelemetry.baggage.Baggage;
-import io.opentelemetry.baggage.EntryMetadata;
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.api.baggage.EntryMetadata;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import org.apache.commons.logging.Log;

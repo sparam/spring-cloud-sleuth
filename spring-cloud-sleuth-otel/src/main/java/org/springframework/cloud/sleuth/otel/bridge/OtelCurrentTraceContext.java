@@ -20,11 +20,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.ContextStorage;
 import io.opentelemetry.context.ContextStorageProvider;
-import io.opentelemetry.trace.Span;
-import io.opentelemetry.trace.SpanContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
