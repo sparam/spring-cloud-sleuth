@@ -93,7 +93,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 			verifyNoSpansUntilFluxComplete(flux);
 		}
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).traceId()).isEqualTo(context.traceId());
 			BDDAssertions.then(this.spans.get(0).parentId()).isEqualTo(context.spanId());
@@ -106,7 +106,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("test-method");
 			BDDAssertions.then(this.spans.get(0).endTimestamp()).isNotZero();
@@ -120,7 +120,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("test-method2");
 			BDDAssertions.then(this.spans.get(0).endTimestamp()).isNotZero();
@@ -134,7 +134,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("custom-name-on-test-method3");
 			BDDAssertions.then(this.spans.get(0).endTimestamp()).isNotZero();
@@ -148,7 +148,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("custom-name-on-test-method4");
 			BDDAssertions.then(this.spans.get(0).endTimestamp()).isNotZero();
@@ -164,7 +164,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 		// end::execution[]
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("custom-name-on-test-method5");
 			BDDAssertions.then(this.spans.get(0).tags()).containsEntry("testTag", "test");
@@ -179,7 +179,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("custom-name-on-test-method6");
 			BDDAssertions.then(this.spans.get(0).tags()).containsEntry("testTag6", "test");
@@ -194,7 +194,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("custom-name-on-test-method8");
 			BDDAssertions.then(this.spans.get(0).endTimestamp()).isNotZero();
@@ -208,7 +208,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("custom-name-on-test-method9");
 			BDDAssertions.then(this.spans.get(0).tags()).containsEntry("class", "TestBean").containsEntry("method",
@@ -231,7 +231,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 			span.end();
 		}
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(spans).hasSize(1);
 			BDDAssertions.then(spans.get(0).name()).isEqualTo("foo");
 			BDDAssertions.then(spans.get(0).tags()).containsEntry("customTestTag10", "test");
@@ -247,7 +247,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 		Flux<String> flux = this.testBean.testMethod10("test");
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("test-method10");
 			BDDAssertions.then(this.spans.get(0).tags()).containsEntry("customTestTag10", "test");
@@ -272,7 +272,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 			span.end();
 		}
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("foo");
 			BDDAssertions.then(this.spans.get(0).tags()).containsEntry("customTestTag10", "test");
@@ -298,7 +298,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 			span.end();
 		}
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("foo");
 			BDDAssertions.then(this.spans.get(0).tags()).containsEntry("class", "TestBean")
@@ -323,7 +323,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 		catch (RuntimeException ignored) {
 		}
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			FinishedSpan finishedSpan = this.spans.get(0);
 			BDDAssertions.then(finishedSpan.name()).isEqualTo("test-method12");
@@ -353,7 +353,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 			span.end();
 		}
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("foo");
 			BDDAssertions.then(this.spans.get(0).error()).hasMessageContaining("test exception 13");
@@ -370,7 +370,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 		Flux<String> flux = this.testBean.testMethod7();
 		verifyNoSpansUntilFluxComplete(flux);
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).isEmpty();
 			BDDAssertions.then(this.tracer.currentSpan()).isNull();
 		});
@@ -381,7 +381,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 		Flux<String> flux = this.testBean.newSpanInTraceContext();
 		String newSpanId = flux.blockFirst();
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("span-in-trace-context");
 			BDDAssertions.then(this.spans.get(0).spanId()).isEqualTo(newSpanId);
@@ -394,7 +394,7 @@ public abstract class SleuthSpanCreatorAspectFluxTests {
 		Flux<String> flux = this.testBean.newSpanInSubscriberContext();
 		String newSpanId = flux.blockFirst();
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			BDDAssertions.then(this.spans).hasSize(1);
 			BDDAssertions.then(this.spans.get(0).name()).isEqualTo("span-in-subscriber-context");
 			BDDAssertions.then(this.spans.get(0).spanId()).isEqualTo(newSpanId);

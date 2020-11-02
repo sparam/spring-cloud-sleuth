@@ -17,8 +17,7 @@
 package org.springframework.cloud.sleuth.otel.instrument.circuitbreaker;
 
 import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.sdk.trace.Sampler;
-import io.opentelemetry.sdk.trace.Samplers;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
 import org.assertj.core.api.BDDAssertions;
 
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,7 +51,7 @@ public class CircuitBreakerIntegrationTests
 
 		@Bean
 		Sampler alwaysSampler() {
-			return Samplers.alwaysOn();
+			return Sampler.alwaysOn();
 		}
 
 	}

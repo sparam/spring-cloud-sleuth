@@ -19,15 +19,14 @@ package org.springframework.cloud.sleuth.otel.baggage;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import io.opentelemetry.sdk.trace.Sampler;
-import io.opentelemetry.sdk.trace.Samplers;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.exporter.FinishedSpan;
 import org.springframework.cloud.sleuth.otel.OtelTestSpanHandler;
-import org.springframework.cloud.sleuth.otel.bridge.OtelBaggageEntry;
+import org.springframework.cloud.sleuth.otel.bridge.OtelBaggageInScope;
 import org.springframework.cloud.sleuth.otel.exporter.ArrayListSpanProcessor;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
@@ -71,7 +70,7 @@ public class MultipleHopsIntegrationTests
 
 		@Bean
 		Sampler alwaysSampler() {
-			return Samplers.alwaysOn();
+			return Sampler.alwaysOn();
 		}
 
 		@Bean
@@ -83,12 +82,12 @@ public class MultipleHopsIntegrationTests
 
 }
 
-class MyBaggageChangedListener implements ApplicationListener<OtelBaggageEntry.BaggageChanged> {
+class MyBaggageChangedListener implements ApplicationListener<OtelBaggageInScope.BaggageChanged> {
 
-	Queue<OtelBaggageEntry.BaggageChanged> baggageChanged = new LinkedBlockingQueue<>();
+	Queue<OtelBaggageInScope.BaggageChanged> baggageChanged = new LinkedBlockingQueue<>();
 
 	@Override
-	public void onApplicationEvent(OtelBaggageEntry.BaggageChanged event) {
+	public void onApplicationEvent(OtelBaggageInScope.BaggageChanged event) {
 		this.baggageChanged.add(event);
 	}
 

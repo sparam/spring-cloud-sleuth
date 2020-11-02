@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
 
 import org.springframework.cloud.sleuth.autoconfig.SleuthBaggageProperties;
-import org.springframework.cloud.sleuth.otel.bridge.OtelBaggageEntry;
+import org.springframework.cloud.sleuth.otel.bridge.OtelBaggageInScope;
 import org.springframework.cloud.sleuth.otel.bridge.OtelBaggageManager;
 import org.springframework.cloud.sleuth.otel.bridge.OtelCurrentTraceContext;
 import org.springframework.context.ApplicationEvent;
@@ -111,7 +111,7 @@ class Slf4jSpanProcessor implements SpanProcessor, ApplicationListener {
 				.collect(Collectors.toList());
 	}
 
-	private void onBaggageChanged(OtelBaggageEntry.BaggageChanged event) {
+	private void onBaggageChanged(OtelBaggageInScope.BaggageChanged event) {
 		if (log.isTraceEnabled()) {
 			log.trace("Got baggage changed event [" + event + "]");
 		}
@@ -144,8 +144,8 @@ class Slf4jSpanProcessor implements SpanProcessor, ApplicationListener {
 
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
-		if (event instanceof OtelBaggageEntry.BaggageChanged) {
-			onBaggageChanged((OtelBaggageEntry.BaggageChanged) event);
+		if (event instanceof OtelBaggageInScope.BaggageChanged) {
+			onBaggageChanged((OtelBaggageInScope.BaggageChanged) event);
 		}
 		else if (event instanceof OtelCurrentTraceContext.ScopeChanged) {
 			onScopeChanged((OtelCurrentTraceContext.ScopeChanged) event);

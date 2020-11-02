@@ -37,9 +37,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
 
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.autoconfig.SleuthBaggageProperties;
-import org.springframework.cloud.sleuth.brave.bridge.BraveBaggageEntry;
+import org.springframework.cloud.sleuth.brave.bridge.BraveBaggageInScope;
 import org.springframework.cloud.sleuth.brave.bridge.BraveBaggageManager;
 
 import static java.util.Collections.singletonList;
@@ -346,8 +346,8 @@ class W3CBaggagePropagator {
 				try {
 					String key = keyAndValue[i].trim();
 					String value = keyAndValue[i + 1].trim();
-					BaggageEntry baggage = this.braveBaggageManager.createBaggage(key);
-					BaggageField field = ((BraveBaggageEntry) baggage).unwrap();
+					BaggageInScope baggage = this.braveBaggageManager.createBaggage(key);
+					BaggageField field = ((BraveBaggageInScope) baggage).unwrap();
 					pairs.add(new AbstractMap.SimpleEntry<>(field, value));
 				}
 				catch (Exception e) {

@@ -16,7 +16,6 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import io.opentelemetry.context.ContextStorageProvider;
 import io.opentelemetry.context.propagation.ContextPropagators;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -73,9 +72,8 @@ public class TraceOtelBridgeAutoConfiguation {
 
 	@Bean
 	OtelBaggageManager otelBaggageManager(CurrentTraceContext currentTraceContext,
-			ContextStorageProvider contextStorageProvider, SleuthBaggageProperties sleuthBaggageProperties,
-			ApplicationEventPublisher publisher) {
-		return new OtelBaggageManager(currentTraceContext, contextStorageProvider, sleuthBaggageProperties, publisher);
+			SleuthBaggageProperties sleuthBaggageProperties, ApplicationEventPublisher publisher) {
+		return new OtelBaggageManager(currentTraceContext, sleuthBaggageProperties, publisher);
 	}
 
 }

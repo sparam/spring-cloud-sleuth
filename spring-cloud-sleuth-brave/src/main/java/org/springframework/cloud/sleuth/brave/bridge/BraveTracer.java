@@ -20,7 +20,7 @@ import java.util.Map;
 
 import brave.propagation.TraceContextOrSamplingFlags;
 
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.api.ScopedSpan;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.SpanCustomizer;
@@ -100,18 +100,23 @@ public class BraveTracer implements Tracer {
 	}
 
 	@Override
-	public BaggageEntry getBaggage(String name) {
+	public BaggageInScope getBaggage(String name) {
 		return this.braveBaggageManager.getBaggage(name);
 	}
 
 	@Override
-	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
+	public BaggageInScope getBaggage(TraceContext traceContext, String name) {
 		return this.braveBaggageManager.getBaggage(traceContext, name);
 	}
 
 	@Override
-	public BaggageEntry createBaggage(String name) {
+	public BaggageInScope createBaggage(String name) {
 		return this.braveBaggageManager.createBaggage(name);
+	}
+
+	@Override
+	public BaggageInScope createBaggage(String name, String value) {
+		return this.braveBaggageManager.createBaggage(name).set(value);
 	}
 
 }

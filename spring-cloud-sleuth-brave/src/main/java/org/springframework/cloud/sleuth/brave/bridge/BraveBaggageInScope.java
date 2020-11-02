@@ -14,41 +14,60 @@
  * limitations under the License.
  */
 
-package org.springframework.cloud.sleuth.api.noop;
+package org.springframework.cloud.sleuth.brave.bridge;
 
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import brave.baggage.BaggageField;
+
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.api.TraceContext;
 
 /**
- * A noop implementation. Does nothing.
+ * Brave implementation of a {@link BaggageInScope}.
  *
  * @author Marcin Grzejszczak
  * @since 3.0.0
  */
-public class NoOpBaggageEntry implements BaggageEntry {
+public class BraveBaggageInScope implements BaggageInScope {
+
+	private final BaggageField delegate;
+
+	public BraveBaggageInScope(BaggageField delegate) {
+		this.delegate = delegate;
+	}
 
 	@Override
 	public String name() {
-		return null;
+		return this.delegate.name();
 	}
 
 	@Override
 	public String get() {
-		return null;
+		return this.delegate.getValue();
 	}
 
 	@Override
 	public String get(TraceContext traceContext) {
-		return null;
+		return this.delegate.getValue(BraveTraceContext.toBrave(traceContext));
 	}
 
 	@Override
-	public void set(String value) {
+	public BraveBaggageInScope set(String value) {
+		this.delegate.updateValue(value);
+		return this;
+	}
 
+	public BaggageField unwrap() {
+		return this.delegate;
 	}
 
 	@Override
-	public void set(TraceContext traceContext, String value) {
+	public BraveBaggageInScope set(TraceContext traceContext, String value) {
+		this.delegate.updateValue(BraveTraceContext.toBrave(traceContext), value);
+		return this;
+	}
+
+	@Override
+	public void close() {
 
 	}
 

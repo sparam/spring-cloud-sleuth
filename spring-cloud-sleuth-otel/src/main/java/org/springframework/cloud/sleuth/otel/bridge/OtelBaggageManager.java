@@ -28,9 +28,8 @@ import io.opentelemetry.api.baggage.Baggage;
 import io.opentelemetry.api.baggage.Entry;
 import io.opentelemetry.api.baggage.EntryMetadata;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.ContextStorageProvider;
 
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.api.BaggageManager;
 import org.springframework.cloud.sleuth.api.CurrentTraceContext;
 import org.springframework.cloud.sleuth.api.TraceContext;
@@ -47,16 +46,13 @@ public class OtelBaggageManager {
 
 	private final CurrentTraceContext currentTraceContext;
 
-	private final ContextStorageProvider contextStorageProvider;
-
 	private final SleuthBaggageProperties sleuthBaggageProperties;
 
 	private final ApplicationEventPublisher publisher;
 
-	public OtelBaggageManager(CurrentTraceContext currentTraceContext, ContextStorageProvider contextStorageProvider,
-			SleuthBaggageProperties sleuthBaggageProperties, ApplicationEventPublisher publisher) {
+	public OtelBaggageManager(CurrentTraceContext currentTraceContext, SleuthBaggageProperties sleuthBaggageProperties,
+			ApplicationEventPublisher publisher) {
 		this.currentTraceContext = currentTraceContext;
-		this.contextStorageProvider = contextStorageProvider;
 		this.sleuthBaggageProperties = sleuthBaggageProperties;
 		this.publisher = publisher;
 	}
@@ -70,17 +66,20 @@ public class OtelBaggageManager {
 	CompositeBaggage currentBaggage() {
 		OtelTraceContext traceContext = (OtelTraceContext) currentTraceContext.context();
 		Context context = Context.current();
-		Deque<Context> stack = traceContext != null ? traceContext.stackCopy() : new ArrayDeque<>();
+		Deque<Context> stack = new ArrayDeque<>();
+		if (traceContext != null) {
+			stack.addFirst(traceContext.context());
+		}
 		stack.addFirst(context);
 		return new CompositeBaggage(stack);
 	}
 
-	public BaggageEntry getBaggage(String name) {
+	public BaggageInScope getBaggage(String name) {
 		Entry entry = getBaggage(name, currentBaggage());
 		return createNewEntryIfMissing(name, entry);
 	}
 
-	protected BaggageEntry createNewEntryIfMissing(String name, Entry entry) {
+	protected BaggageInScope createNewEntryIfMissing(String name, Entry entry) {
 		if (entry == null) {
 			return createBaggage(name);
 		}
@@ -91,21 +90,25 @@ public class OtelBaggageManager {
 		return entryForName(name, baggage);
 	}
 
-	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
-		Entry entry = getEntry((OtelTraceContext) traceContext, name);
-		return createNewEntryIfMissing(name, entry);
-	}
-
-	protected Entry getEntry(OtelTraceContext traceContext, String name) {
-		OtelTraceContext context = traceContext;
-		Deque<Context> stack = context.stackCopy();
+	public BaggageInScope getBaggage(TraceContext traceContext, String name) {
+		OtelTraceContext context = (OtelTraceContext) traceContext;
+		// TODO: Refactor
+		Deque<Context> stack = new ArrayDeque<>();
+		stack.addFirst(Context.current());
+		stack.addFirst(context.context());
 		Context ctx = removeFirst(stack);
 		Entry entry = null;
 		while (ctx != null && entry == null) {
 			entry = getBaggage(name, Baggage.fromContext(ctx));
 			ctx = removeFirst(stack);
 		}
-		return entry;
+		return createNewEntryIfMissing(name, entry);
+	}
+
+	protected Entry getEntry(OtelTraceContext traceContext, String name) {
+		OtelTraceContext context = traceContext;
+		Context ctx = context.context();
+		return getBaggage(name, Baggage.fromContext(ctx));
 	}
 
 	protected Context removeFirst(Deque<Context> stack) {
@@ -117,23 +120,28 @@ public class OtelBaggageManager {
 				.findFirst().orElse(null);
 	}
 
-	private BaggageEntry otelBaggage(Entry entry) {
-		return new OtelBaggageEntry(this, this.contextStorageProvider, this.currentTraceContext, this.publisher,
-				this.sleuthBaggageProperties, entry);
+	private BaggageInScope otelBaggage(Entry entry) {
+		return new OtelBaggageInScope(this, this.currentTraceContext, this.publisher, this.sleuthBaggageProperties,
+				entry);
 	}
 
-	public BaggageEntry createBaggage(String name) {
-		return baggageWithValue(name, "");
+	public BaggageInScope createBaggage(String name) {
+		return createBaggage(name, "");
 	}
 
-	private BaggageEntry baggageWithValue(String name, String value) {
+	public BaggageInScope createBaggage(String name, String value) {
+		BaggageInScope baggageInScope = baggageWithValue(name, "");
+		return baggageInScope.set(value);
+	}
+
+	private BaggageInScope baggageWithValue(String name, String value) {
 		List<String> remoteFieldsFields = this.sleuthBaggageProperties.getRemoteFields();
 		boolean remoteField = remoteFieldsFields.stream().map(String::toLowerCase)
 				.anyMatch(s -> s.equals(name.toLowerCase()));
 		EntryMetadata entryMetadata = EntryMetadata.create(propagationString(remoteField));
 		Entry entry = Entry.create(name, value, entryMetadata);
-		return new OtelBaggageEntry(this, this.contextStorageProvider, this.currentTraceContext, this.publisher,
-				this.sleuthBaggageProperties, entry);
+		return new OtelBaggageInScope(this, this.currentTraceContext, this.publisher, this.sleuthBaggageProperties,
+				entry);
 	}
 
 	private String propagationString(boolean remoteField) {

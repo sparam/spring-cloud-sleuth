@@ -16,13 +16,14 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import java.util.Deque;
-import java.util.Objects;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.api.baggage.Entry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
@@ -73,53 +74,30 @@ public class OtelCurrentTraceContext implements CurrentTraceContext, ContextStor
 		if (otelTraceContext == null) {
 			return io.opentelemetry.context.Scope::noop;
 		}
-		Deque<Context> stack = otelTraceContext.stack;
+		Context current = Context.current();
+		Context old = otelTraceContext.context();
+		Span currentSpan = Span.fromContext(current);
+		Span oldSpan = Span.fromContext(otelTraceContext.context());
 		SpanContext spanContext = otelTraceContext.delegate;
+		boolean sameSpan = currentSpan.getSpanContext().equals(oldSpan.getSpanContext())
+				&& currentSpan.getSpanContext().equals(spanContext);
+		Baggage currentBaggage = Baggage.fromContext(current);
+		Baggage oldBaggage = Baggage.fromContext(old);
+		boolean sameBaggage = sameBaggage(currentBaggage, oldBaggage);
+		if (sameSpan && sameBaggage) {
+			return io.opentelemetry.context.Scope::noop;
+		}
 		SpanFromSpanContext fromContext = new SpanFromSpanContext(((OtelTraceContext) context).span, spanContext,
 				otelTraceContext);
-		Context old = Context.current();
-		Context newContext = old.with(fromContext);
+		Context newContext = old.with(fromContext).with(currentBaggage.toBuilder().setParent(old).build());
 		io.opentelemetry.context.Scope attach = get().attach(newContext);
-		boolean addContext = !contextEqual(old, newContext) && !contextEqual(stack.peekFirst(), newContext);
-		if (addContext) {
-			stack.addFirst(newContext);
-		}
-		return () -> {
-			if (addContext) {
-				stack.remove();
-			}
-			attach.close();
-		};
+		return attach::close;
 	}
 
-	private boolean contextEqual(Context old, Context newCtx) {
-		Baggage bg1 = Baggage.fromContextOrNull(newCtx);
-		Baggage bg2 = Baggage.fromContextOrNull(newCtx);
-		boolean baggagesEqual = Objects.equals(bg1, bg2);
-		boolean spansEqual = spansEqual(Span.fromContext(old), Span.fromContext(newCtx));
-		return spansEqual && baggagesEqual;
-	}
-
-	private boolean spansEqual(Span span1, Span span2) {
-		boolean exactlyEqual = Objects.equals(span1, span2);
-		if (exactlyEqual) {
-			return true;
-		}
-		if (oneNull(span1, span2)) {
-			return false;
-		}
-		boolean spansEqual = Objects.equals(span1.getSpanContext().getSpanIdAsHexString(),
-				span2.getSpanContext().getSpanIdAsHexString())
-				&& Objects.equals(span1.getSpanContext().getTraceIdAsHexString(),
-						span2.getSpanContext().getTraceIdAsHexString());
-		if (!spansEqual) {
-			return false;
-		}
-		return true;
-	}
-
-	private boolean oneNull(Span span1, Span span2) {
-		return span1 != null && span2 == null || span1 == null && span2 != null;
+	private boolean sameBaggage(Baggage currentBaggage, Baggage oldBaggage) {
+		Set<Entry> entries = new HashSet<>(currentBaggage.getEntries());
+		entries.removeAll(oldBaggage.getEntries());
+		return entries.isEmpty();
 	}
 
 	@Override
@@ -160,20 +138,10 @@ public class OtelCurrentTraceContext implements CurrentTraceContext, ContextStor
 		return new ContextStorage() {
 			@Override
 			public io.opentelemetry.context.Scope attach(Context toAttach) {
-				Context current = current();
-				if (log.isTraceEnabled()) {
-					log.trace("Will check if new scope should be created for context [" + current + "]");
-				}
-				Span fromContext = toAttach != null ? Span.fromContext(toAttach) : Span.getInvalid();
-				Span currentSpan = current != null ? Span.fromContext(current) : Span.getInvalid();
-				// if the context is the same noop scope will be returned
 				io.opentelemetry.context.Scope scope = threadLocalStorage.attach(toAttach);
-				if (traceAndSpanIdsAreEqual(fromContext, currentSpan)) {
-					if (log.isTraceEnabled()) {
-						log.trace("Same context as the current one - will return noop");
-					}
-				}
-				else {
+				Span currentSpan = Span.fromContext(Context.current());
+				if (scope != io.opentelemetry.context.Scope.noop()) {
+					Span fromContext = Span.fromContext(toAttach);
 					publisher.publishEvent(new ScopeChanged(this, fromContext));
 				}
 				return () -> {

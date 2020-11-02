@@ -19,12 +19,11 @@ package org.springframework.cloud.sleuth.otel.bridge;
 import java.util.Map;
 
 import io.opentelemetry.api.trace.SpanContext;
-import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.api.ScopedSpan;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.SpanCustomizer;
@@ -104,18 +103,23 @@ public class OtelTracer implements Tracer {
 	}
 
 	@Override
-	public BaggageEntry getBaggage(String name) {
+	public BaggageInScope getBaggage(String name) {
 		return this.otelBaggageManager.getBaggage(name);
 	}
 
 	@Override
-	public BaggageEntry getBaggage(TraceContext traceContext, String name) {
+	public BaggageInScope getBaggage(TraceContext traceContext, String name) {
 		return this.otelBaggageManager.getBaggage(traceContext, name);
 	}
 
 	@Override
-	public BaggageEntry createBaggage(String name) {
+	public BaggageInScope createBaggage(String name) {
 		return this.otelBaggageManager.createBaggage(name);
+	}
+
+	@Override
+	public BaggageInScope createBaggage(String name, String value) {
+		return this.otelBaggageManager.createBaggage(name, value);
 	}
 
 }
@@ -137,9 +141,6 @@ class OtelSpanInScope implements Tracer.SpanInScope {
 		this.otelSpan = otelSpan;
 		this.delegate = otelSpan.makeCurrent();
 		this.spanContext = otelSpan.getSpanContext();
-		if (this.sleuthSpan != null) {
-			this.sleuthSpan.addContext(Context.current());
-		}
 	}
 
 	@Override
@@ -148,9 +149,6 @@ class OtelSpanInScope implements Tracer.SpanInScope {
 			log.trace("Will close scope for trace context [" + this.spanContext + "]");
 		}
 		this.delegate.close();
-		if (this.sleuthSpan != null) {
-			this.sleuthSpan.removeContext();
-		}
 	}
 
 }

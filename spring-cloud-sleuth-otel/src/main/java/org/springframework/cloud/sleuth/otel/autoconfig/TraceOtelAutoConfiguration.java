@@ -20,9 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.metrics.MeterProvider;
+import io.opentelemetry.api.metrics.spi.MeterProviderFactory;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.TracerProvider;
 import io.opentelemetry.api.trace.spi.TracerProviderFactory;
+import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.sdk.trace.SpanProcessor;
 import io.opentelemetry.sdk.trace.TracerSdkProvider;
 import io.opentelemetry.sdk.trace.config.TraceConfig;
@@ -37,6 +41,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.sleuth.autoconfig.TraceAutoConfiguration;
+import org.springframework.cloud.sleuth.otel.bridge.OtelOpenTelemetry;
 import org.springframework.cloud.sleuth.otel.exporter.SpanExporterCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +61,14 @@ public class TraceOtelAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
+	OpenTelemetry otel(TracerProviderFactory tracerProviderFactory, MeterProviderFactory meterProviderFactory,
+			TracerProvider tracerProvider, MeterProvider meterProvider, ContextPropagators contextPropagators) {
+		return new OtelOpenTelemetry(tracerProviderFactory, meterProviderFactory, tracerProvider, meterProvider,
+				contextPropagators);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
 	TracerProviderFactory otelTracerProviderFactory() {
 		return new TracerProviderFactorySdk();
 	}
@@ -64,6 +77,18 @@ public class TraceOtelAutoConfiguration {
 	@ConditionalOnMissingBean
 	TracerProvider otelTracerProvider(TracerProviderFactory tracerProviderFactory) {
 		return tracerProviderFactory.create();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	MeterProviderFactory otelMeterProviderFactory() {
+		return OpenTelemetry::getGlobalMeterProvider;
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	MeterProvider otelMeterProvider(MeterProviderFactory meterProviderFactory) {
+		return meterProviderFactory.create();
 	}
 
 	@Bean

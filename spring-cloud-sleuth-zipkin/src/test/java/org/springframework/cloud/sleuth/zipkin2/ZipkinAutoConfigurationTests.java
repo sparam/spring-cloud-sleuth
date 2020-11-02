@@ -167,7 +167,7 @@ public class ZipkinAutoConfigurationTests {
 		Awaitility.await().atMost(250, TimeUnit.MILLISECONDS)
 				.untilAsserted(() -> then(this.server.getRequestCount()).isGreaterThan(1));
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			RecordedRequest request = this.server.takeRequest(1, TimeUnit.SECONDS);
 			then(request.getPath()).isEqualTo("/api/v2/spans");
 			then(request.getBody().readUtf8()).contains("localEndpoint");
@@ -195,7 +195,7 @@ public class ZipkinAutoConfigurationTests {
 		Awaitility.await().atMost(250, TimeUnit.MILLISECONDS)
 				.untilAsserted(() -> then(this.server.getRequestCount()).isGreaterThan(0));
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			RecordedRequest request = this.server.takeRequest(1, TimeUnit.SECONDS);
 			then(request.getPath()).isEqualTo("/api/v1/spans");
 			then(request.getBody().readUtf8()).contains("binaryAnnotations");
@@ -310,7 +310,7 @@ public class ZipkinAutoConfigurationTests {
 		Awaitility.await().atMost(250, TimeUnit.MILLISECONDS)
 				.untilAsserted(() -> then(this.server.getRequestCount()).isGreaterThan(1));
 
-		Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> {
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			RecordedRequest request = this.server.takeRequest(1, TimeUnit.SECONDS);
 			then(request.getPath()).isEqualTo("/api/v2/spans");
 			then(request.getBody().readUtf8()).contains("localEndpoint");

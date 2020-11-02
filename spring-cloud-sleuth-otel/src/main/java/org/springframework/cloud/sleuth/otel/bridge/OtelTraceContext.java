@@ -16,9 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
@@ -36,30 +35,34 @@ import org.springframework.lang.Nullable;
  */
 public class OtelTraceContext implements TraceContext {
 
-	final Deque<Context> stack;
+	final AtomicReference<Context> context;
 
 	final SpanContext delegate;
 
 	final Span span;
 
-	public OtelTraceContext(Deque<Context> stack, SpanContext delegate, @Nullable Span span) {
-		this.stack = stack;
+	public OtelTraceContext(Context context, SpanContext delegate, @Nullable Span span) {
+		this(new AtomicReference<>(context), delegate, span);
+	}
+
+	OtelTraceContext(AtomicReference<Context> context, SpanContext delegate, @Nullable Span span) {
+		this.context = context;
 		this.delegate = delegate;
 		this.span = span;
 	}
 
 	public OtelTraceContext(SpanContext delegate, @Nullable Span span) {
-		this.stack = new ArrayDeque<>();
+		this.context = new AtomicReference<>(Context.current());
 		this.delegate = delegate;
 		this.span = span;
 	}
 
 	public OtelTraceContext(Span span) {
-		this(new ArrayDeque<>(), span.getSpanContext(), span);
+		this(Context.current(), span.getSpanContext(), span);
 	}
 
 	public OtelTraceContext(SpanFromSpanContext span) {
-		this(span.otelTraceContext.stack, span.getSpanContext(), span);
+		this(span.otelTraceContext.context.get(), span.getSpanContext(), span);
 	}
 
 	public static TraceContext fromOtel(SpanContext traceContext) {
@@ -74,14 +77,6 @@ public class OtelTraceContext implements TraceContext {
 			}
 		}
 		return Context.current();
-	}
-
-	public Deque<Context> stackCopy() {
-		return new ArrayDeque<>(this.stack);
-	}
-
-	void addContext(Context context) {
-		this.stack.addFirst(context);
 	}
 
 	@Override
@@ -126,6 +121,14 @@ public class OtelTraceContext implements TraceContext {
 
 	public Span span() {
 		return this.span;
+	}
+
+	public Context context() {
+		return this.context.get();
+	}
+
+	public void updateContext(Context context) {
+		this.context.set(context);
 	}
 
 }

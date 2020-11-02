@@ -224,7 +224,7 @@ public abstract class WebClientTests {
 
 		try (Tracer.SpanInScope ws = this.tracer.withSpan(span)) {
 			this.webClient.get().uri("http://localhost:" + this.port + "/issue1462").retrieve().bodyToMono(String.class)
-					.block(Duration.ofSeconds(1));
+					.block(Duration.ofSeconds(5));
 		}
 		catch (UnknownHttpStatusCodeException ex) {
 
@@ -259,11 +259,11 @@ public abstract class WebClientTests {
 	@Test
 	public void shouldRespectSkipPattern() {
 		this.webClient.get().uri("http://localhost:" + this.port + "/skip").retrieve().bodyToMono(String.class)
-				.block(Duration.ofSeconds(1));
+				.block(Duration.ofSeconds(5));
 		then(this.spans).isEmpty();
 
 		this.webClient.get().uri("http://localhost:" + this.port + "/doNotSkip").retrieve().bodyToMono(String.class)
-				.block(Duration.ofSeconds(1));
+				.block(Duration.ofSeconds(5));
 		then(this.spans).isNotEmpty();
 	}
 

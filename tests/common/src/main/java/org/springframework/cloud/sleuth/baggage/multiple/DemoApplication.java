@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.Tracer;
 import org.springframework.http.HttpHeaders;
@@ -78,9 +78,9 @@ public class DemoApplication {
 		this.httpSpan = this.tracer.currentSpan();
 
 		// tag what was propagated
-		BaggageEntry baggageEntry = this.tracer.getBaggage(COUNTRY_CODE);
-		if (baggageEntry != null && baggageEntry.get() != null) {
-			this.httpSpan.tag(COUNTRY_CODE, baggageEntry.get());
+		BaggageInScope baggageInScope = this.tracer.getBaggage(COUNTRY_CODE);
+		if (baggageInScope != null && baggageInScope.get() != null) {
+			this.httpSpan.tag(COUNTRY_CODE, baggageInScope.get());
 		}
 
 		return new Greeting(message);

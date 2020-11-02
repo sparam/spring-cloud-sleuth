@@ -35,7 +35,6 @@ import org.springframework.cloud.sleuth.api.http.HttpClientResponse;
 import org.springframework.cloud.sleuth.api.http.HttpRequest;
 import org.springframework.cloud.sleuth.api.http.HttpRequestParser;
 import org.springframework.cloud.sleuth.api.http.HttpResponseParser;
-import org.springframework.cloud.sleuth.otel.bridge.OtelHttpClientRequest;
 import org.springframework.cloud.sleuth.otel.bridge.OtelSpan;
 import org.springframework.cloud.sleuth.otel.bridge.OtelTraceContext;
 import org.springframework.lang.Nullable;
@@ -90,10 +89,9 @@ public class OtelHttpClientHandler extends HttpClientTracer<HttpClientRequest, H
 		if (span == null) {
 			return span(request, startSpan(request));
 		}
-		OtelHttpClientRequest otelHttpClientRequest = new OtelHttpClientRequest((OtelTraceContext) parent, request);
 		try (Scope scope = span.makeCurrent()) {
-			io.opentelemetry.api.trace.Span withParent = startSpan(otelHttpClientRequest);
-			return span(otelHttpClientRequest, withParent);
+			io.opentelemetry.api.trace.Span withParent = startSpan(request);
+			return span(request, withParent);
 		}
 	}
 

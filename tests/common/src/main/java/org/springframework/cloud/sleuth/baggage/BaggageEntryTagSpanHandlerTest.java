@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.cloud.sleuth.api.BaggageEntry;
+import org.springframework.cloud.sleuth.api.BaggageInScope;
 import org.springframework.cloud.sleuth.api.ScopedSpan;
 import org.springframework.cloud.sleuth.api.Tracer;
 import org.springframework.cloud.sleuth.test.TestSpanHandler;
@@ -37,9 +37,9 @@ import org.springframework.test.context.ContextConfiguration;
 @ActiveProfiles("baggage") // application-baggage.yml
 public abstract class BaggageEntryTagSpanHandlerTest {
 
-	BaggageEntry countryCode;
+	BaggageInScope countryCode;
 
-	BaggageEntry requestId;
+	BaggageInScope requestId;
 
 	@Autowired
 	private Tracer tracer;

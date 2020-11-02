@@ -17,15 +17,11 @@
 package org.springframework.cloud.sleuth.otel.propagation;
 
 import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.opentelemetry.api.baggage.Baggage;
-import io.opentelemetry.api.baggage.Entry;
 import io.opentelemetry.api.baggage.EntryMetadata;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
@@ -34,8 +30,6 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.cloud.sleuth.api.BaggageManager;
 import org.springframework.cloud.sleuth.autoconfig.SleuthBaggageProperties;
-import org.springframework.cloud.sleuth.otel.bridge.OtelHttpClientRequest;
-import org.springframework.cloud.sleuth.otel.bridge.OtelTraceContext;
 import org.springframework.context.ApplicationEventPublisher;
 
 class BaggageTextMapPropagator implements TextMapPropagator {
@@ -67,28 +61,11 @@ class BaggageTextMapPropagator implements TextMapPropagator {
 	}
 
 	private <C> List<Map.Entry<String, String>> applicableBaggageEntries(C c) {
-		Map<String, String> allBaggage = allBaggage(c);
+		Map<String, String> allBaggage = this.baggageManager.getAllBaggage();
 		List<String> lowerCaseKeys = this.properties.getRemoteFields().stream().map(String::toLowerCase)
 				.collect(Collectors.toList());
 		return allBaggage.entrySet().stream().filter(e -> lowerCaseKeys.contains(e.getKey().toLowerCase()))
 				.collect(Collectors.toList());
-	}
-
-	private <C> Map<String, String> allBaggage(C c) {
-		Map<String, String> allBaggage = this.baggageManager.getAllBaggage();
-		if (c instanceof OtelHttpClientRequest) {
-			OtelHttpClientRequest otelHttpClientRequest = (OtelHttpClientRequest) c;
-			OtelTraceContext context = otelHttpClientRequest.context();
-			Deque<Context> contexts = context.stackCopy();
-			Iterator<Context> iterator = contexts.descendingIterator();
-			while (iterator.hasNext()) {
-				Context next = iterator.next();
-				Baggage baggage = Baggage.fromContext(next);
-				Collection<Entry> entries = baggage.getEntries();
-				allBaggage.putAll(entries.stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue)));
-			}
-		}
-		return allBaggage;
 	}
 
 	@Override

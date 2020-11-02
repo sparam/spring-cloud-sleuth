@@ -16,9 +16,8 @@
 
 package org.springframework.cloud.sleuth.otel.bridge;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
@@ -41,25 +40,22 @@ public class OtelSpan implements Span {
 
 	final io.opentelemetry.api.trace.Span delegate;
 
-	private final Deque<Context> stack;
+	private final AtomicReference<Context> context;
 
 	public OtelSpan(io.opentelemetry.api.trace.Span delegate) {
 		this.delegate = delegate;
 		if (delegate instanceof SpanFromSpanContext) {
 			SpanFromSpanContext fromSpanContext = (SpanFromSpanContext) delegate;
-			this.stack = fromSpanContext.otelTraceContext.stack;
+			this.context = fromSpanContext.otelTraceContext.context;
 		}
 		else {
-			this.stack = new ArrayDeque<>();
+			this.context = new AtomicReference<>(Context.current());
 		}
 	}
 
-	public OtelSpan(io.opentelemetry.api.trace.Span delegate, Context... contexts) {
+	public OtelSpan(io.opentelemetry.api.trace.Span delegate, Context context) {
 		this.delegate = delegate;
-		this.stack = new ArrayDeque<>();
-		for (Context ctx : contexts) {
-			this.stack.addFirst(ctx);
-		}
+		this.context = new AtomicReference<>(context);
 	}
 
 	public static io.opentelemetry.api.trace.Span toOtel(Span span) {
@@ -70,16 +66,8 @@ public class OtelSpan implements Span {
 		return new OtelSpan(span);
 	}
 
-	public static Span fromOtel(io.opentelemetry.api.trace.Span span, Context... contexts) {
-		return new OtelSpan(span, contexts);
-	}
-
-	void addContext(Context context) {
-		this.stack.addFirst(context);
-	}
-
-	void removeContext() {
-		this.stack.removeFirst();
+	public static Span fromOtel(io.opentelemetry.api.trace.Span span, Context context) {
+		return new OtelSpan(span, context);
 	}
 
 	@Override
@@ -92,7 +80,7 @@ public class OtelSpan implements Span {
 		if (this.delegate == null) {
 			return null;
 		}
-		return new OtelTraceContext(this.stack, this.delegate.getSpanContext(), this.delegate);
+		return new OtelTraceContext(this.context, this.delegate.getSpanContext(), this.delegate);
 	}
 
 	@Override
