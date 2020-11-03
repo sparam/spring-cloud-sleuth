@@ -18,6 +18,8 @@ package org.springframework.cloud.sleuth.otel.instrument.web.baggage;
 
 import java.lang.invoke.MethodHandles;
 
+import io.opentelemetry.api.baggage.Baggage;
+import io.opentelemetry.context.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -43,6 +45,11 @@ public class Service1Controller {
 	@GetMapping("/start")
 	public Mono<String> start() {
 		return this.service2Client.start();
+	}
+
+	@GetMapping("/startWithOtel")
+	public Mono<String> startOtel() {
+		return this.service2Client.startWithOtelOnly();
 	}
 
 }
@@ -100,12 +107,46 @@ class Service2Client {
 		});
 	}
 
+	public Mono<String> startWithOtelOnly() {
+		log.info("Hello from service1. Setting baggage foo=>bar");
+		io.opentelemetry.api.trace.Span span = io.opentelemetry.api.trace.Span.current();
+		String secretBaggage = Baggage.current().getEntryValue("baggage");
+		log.info("Super secret baggage item for key [baggage] is [{}]", secretBaggage);
+		this.superSecretBaggage = secretBaggage;
+		if (StringUtils.hasText(secretBaggage)) {
+			span.addEvent("secret_baggage_received");
+			span.setAttribute("baggage", secretBaggage);
+		}
+		String baggageKey = "key";
+		String baggageValue = "foo";
+		Baggage baggage = Baggage.builder().put(baggageKey, baggageValue).build();
+		Scope baggageField = baggage.makeCurrent();
+		span.addEvent("baggage_set");
+		span.setAttribute(baggageKey, baggageValue);
+		log.info("Hello from service1. Calling service2");
+		return webClient.get().uri(serviceAddress + "/foo").exchange().doOnSuccess(clientResponse -> {
+			log.info("Got response from service2 [{}]", clientResponse);
+			// This will not work
+			// String key = Baggage.current().getEntryValue("key");
+			try (Scope scope = baggage.makeCurrent()) {
+				String key = Baggage.current().getEntryValue("key");
+				this.baggageKey = key;
+				log.info("Service1: Baggage for [key] is [" + key + "]");
+			}
+		}).flatMap(clientResponse -> clientResponse.bodyToMono(String.class)).doOnTerminate(baggageField::close);
+	}
+
 	String getSuperSecretBaggage() {
 		return this.superSecretBaggage;
 	}
 
 	String getBaggageKey() {
 		return this.baggageKey;
+	}
+
+	void reset() {
+		this.superSecretBaggage = null;
+		this.baggageKey = null;
 	}
 
 }

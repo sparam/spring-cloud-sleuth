@@ -24,7 +24,9 @@ import io.opentelemetry.sdk.trace.samplers.Sampler;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -57,17 +59,27 @@ public class WebFluxBaggageTests {
 	@Autowired
 	MockWebServer mockWebServer;
 
-	@Test
-	void should_propagate_baggage() throws InterruptedException {
+	@BeforeEach
+	void setup() {
+		this.service2Client.reset();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "/start", "/startWithOtel" })
+	void should_propagate_baggage(String path) throws InterruptedException {
 		this.mockWebServer.enqueue(new MockResponse().setBody("hello"));
 
-		String response = new TestRestTemplate().exchange(
-				RequestEntity.get(URI.create("http://localhost:" + port + "/start")).header("baggage", "super").build(),
-				String.class).getBody();
+		String response = requestWithBaggage(path);
 
 		then(response).as("Request was sent and response received").isEqualTo("hello");
 		thenBaggageWasProperlyPropagatedWithinWebFlux();
 		thenBaggageWasPropagatedViaHttpClient();
+	}
+
+	private String requestWithBaggage(String path) {
+		return new TestRestTemplate().exchange(
+					RequestEntity.get(URI.create("http://localhost:" + port + path)).header("baggage", "super").build(),
+					String.class).getBody();
 	}
 
 	private void thenBaggageWasPropagatedViaHttpClient() throws InterruptedException {
