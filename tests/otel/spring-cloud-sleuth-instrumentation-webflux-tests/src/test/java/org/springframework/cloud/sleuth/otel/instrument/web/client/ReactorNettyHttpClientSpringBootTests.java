@@ -52,7 +52,7 @@ public class ReactorNettyHttpClientSpringBootTests
 	@Override
 	public void assertSingleB3Header(String b3SingleHeaderReadByServer, FinishedSpan clientSpan, TraceContext parent) {
 		Assertions.assertThat(b3SingleHeaderReadByServer)
-				.isEqualTo(parent.traceId() + "-" + clientSpan.spanId() + "-1");
+				.isEqualTo(parent.traceId() + "-" + clientSpan.getSpanId() + "-1");
 	}
 
 	@Configuration(proxyBeanMethods = false)

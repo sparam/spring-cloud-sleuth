@@ -51,22 +51,22 @@ public class OtelFinishedSpan implements FinishedSpan {
 	}
 
 	@Override
-	public String name() {
+	public String getName() {
 		return this.spanData.getName();
 	}
 
 	@Override
-	public long startTimestamp() {
+	public long getStartTimestamp() {
 		return this.spanData.getStartEpochNanos();
 	}
 
 	@Override
-	public long endTimestamp() {
+	public long getEndTimestamp() {
 		return this.spanData.getEndEpochNanos();
 	}
 
 	@Override
-	public Map<String, String> tags() {
+	public Map<String, String> getTags() {
 		if (this.tags.isEmpty()) {
 			this.spanData.getAttributes().forEach(new AttributeConsumer() {
 				@Override
@@ -79,38 +79,38 @@ public class OtelFinishedSpan implements FinishedSpan {
 	}
 
 	@Override
-	public Collection<Map.Entry<Long, String>> events() {
+	public Collection<Map.Entry<Long, String>> getEvents() {
 		return this.spanData.getEvents().stream()
 				.map(e -> new AbstractMap.SimpleEntry<>(e.getEpochNanos(), e.getName())).collect(Collectors.toList());
 	}
 
 	@Override
-	public String spanId() {
+	public String getSpanId() {
 		return this.spanData.getSpanId();
 	}
 
 	@Override
-	public String parentId() {
+	public String getParentId() {
 		return this.spanData.getParentSpanId();
 	}
 
 	@Override
-	public String remoteIp() {
-		return tags().get("net.peer.name");
+	public String getRemoteIp() {
+		return getTags().get("net.peer.name");
 	}
 
 	@Override
-	public int remotePort() {
-		return Integer.valueOf(tags().get("net.peer.port"));
+	public int getRemotePort() {
+		return Integer.valueOf(getTags().get("net.peer.port"));
 	}
 
 	@Override
-	public String traceId() {
+	public String getTraceId() {
 		return this.spanData.getTraceId();
 	}
 
 	@Override
-	public Throwable error() {
+	public Throwable getError() {
 		Attributes attributes = this.spanData.getEvents().stream().filter(e -> e.getName().equals("exception"))
 				.findFirst().map(e -> e.getAttributes()).orElse(null);
 		if (attributes != null) {
@@ -120,7 +120,7 @@ public class OtelFinishedSpan implements FinishedSpan {
 	}
 
 	@Override
-	public Span.Kind kind() {
+	public Span.Kind getKind() {
 		if (this.spanData.getKind() == io.opentelemetry.api.trace.Span.Kind.INTERNAL) {
 			return null;
 		}
@@ -128,7 +128,7 @@ public class OtelFinishedSpan implements FinishedSpan {
 	}
 
 	@Override
-	public String remoteServiceName() {
+	public String getRemoteServiceName() {
 		return this.spanData.getAttributes().get(AttributeKey.stringKey("peer.service"));
 	}
 

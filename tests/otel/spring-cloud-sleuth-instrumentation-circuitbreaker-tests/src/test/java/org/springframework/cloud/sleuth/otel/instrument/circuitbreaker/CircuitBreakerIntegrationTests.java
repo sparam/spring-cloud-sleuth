@@ -36,7 +36,7 @@ public class CircuitBreakerIntegrationTests
 
 	@Override
 	public void assertException(FinishedSpan finishedSpan) {
-		OtelFinishedSpan.AssertingThrowable throwable = (OtelFinishedSpan.AssertingThrowable) finishedSpan.error();
+		OtelFinishedSpan.AssertingThrowable throwable = (OtelFinishedSpan.AssertingThrowable) finishedSpan.getError();
 		String msg = throwable.attributes.get(AttributeKey.stringKey("exception.message"));
 		BDDAssertions.then(msg).contains("boom");
 	}

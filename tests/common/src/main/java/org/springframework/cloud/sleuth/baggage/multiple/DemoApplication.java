@@ -71,6 +71,8 @@ public class DemoApplication {
 	@Autowired
 	Tracer tracer;
 
+	String baggageValue;
+
 	@RequestMapping("/greeting")
 	public Greeting greeting(@RequestParam(defaultValue = "Hello World!") String message,
 			@RequestHeader HttpHeaders headers) {
@@ -78,12 +80,17 @@ public class DemoApplication {
 		this.httpSpan = this.tracer.currentSpan();
 
 		// tag what was propagated
-		BaggageInScope baggageInScope = this.tracer.getBaggage(COUNTRY_CODE);
-		if (baggageInScope != null && baggageInScope.get() != null) {
-			this.httpSpan.tag(COUNTRY_CODE, baggageInScope.get());
-		}
+		try (BaggageInScope baggageInScope = this.tracer.getBaggage(COUNTRY_CODE)) {
+			if (baggageInScope != null) {
+				String baggage = baggageInScope.get();
+				if (baggage != null) {
+					this.baggageValue = baggage;
+					this.httpSpan.tag(COUNTRY_CODE, baggage);
+				}
+			}
 
-		return new Greeting(message);
+			return new Greeting(message);
+		}
 	}
 
 	@Splitter(inputChannel = "greetings", outputChannel = "words")
@@ -118,6 +125,10 @@ public class DemoApplication {
 
 	public Span getServiceActivatorSpan() {
 		return this.serviceActivatorSpan;
+	}
+
+	public String getBaggageValue() {
+		return this.baggageValue;
 	}
 
 	public List<Span> allSpans() {

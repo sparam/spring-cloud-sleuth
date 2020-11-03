@@ -40,7 +40,7 @@ public class FeignRetriesTests extends org.springframework.cloud.sleuth.instrume
 	@Override
 	public void assertException() {
 		OtelFinishedSpan.AssertingThrowable throwable = (OtelFinishedSpan.AssertingThrowable) this.tracerTest()
-				.handler().reportedSpans().get(0).error();
+				.handler().reportedSpans().get(0).getError();
 		String type = throwable.attributes.get(AttributeKey.stringKey("exception.type"));
 		BDDAssertions.then(type).contains(IOException.class.getSimpleName());
 	}

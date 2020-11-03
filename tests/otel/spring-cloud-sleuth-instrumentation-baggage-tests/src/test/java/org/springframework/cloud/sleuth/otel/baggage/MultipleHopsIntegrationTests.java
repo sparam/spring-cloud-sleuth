@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.sleuth.api.Span;
 import org.springframework.cloud.sleuth.api.exporter.FinishedSpan;
+import org.springframework.cloud.sleuth.baggage.multiple.DemoApplication;
 import org.springframework.cloud.sleuth.otel.OtelTestSpanHandler;
 import org.springframework.cloud.sleuth.otel.bridge.OtelBaggageInScope;
 import org.springframework.cloud.sleuth.otel.exporter.ArrayListSpanProcessor;
@@ -45,10 +46,13 @@ public class MultipleHopsIntegrationTests
 	@Autowired
 	MyBaggageChangedListener myBaggageChangedListener;
 
+	@Autowired
+	DemoApplication demoApplication;
+
 	// TODO: Why do we have empty names here
 	@Override
 	protected void assertSpanNames() {
-		then(this.spans).extracting(FinishedSpan::name).containsAll(asList("HTTP GET", "handle", "send"));
+		then(this.spans).extracting(FinishedSpan::getName).containsAll(asList("HTTP GET", "handle", "send"));
 	}
 
 	@Override
@@ -56,8 +60,7 @@ public class MultipleHopsIntegrationTests
 		then(this.myBaggageChangedListener.baggageChanged).as("All have request ID")
 				.filteredOn(b -> b.name.equals(REQUEST_ID))
 				.allMatch(event -> "f4308d05-2228-4468-80f6-92a8377ba193".equals(event.value));
-		then(this.myBaggageChangedListener.baggageChanged).as("All have request ID")
-				.filteredOn(b -> b.name.equals(COUNTRY_CODE)).allMatch(event -> "FO".equals(event.value));
+		then(this.demoApplication.getBaggageValue()).isEqualTo("FO");
 	}
 
 	@Configuration(proxyBeanMethods = false)

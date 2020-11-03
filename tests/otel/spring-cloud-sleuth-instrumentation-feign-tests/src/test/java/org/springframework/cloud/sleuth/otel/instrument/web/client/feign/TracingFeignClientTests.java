@@ -39,7 +39,7 @@ public class TracingFeignClientTests
 	@Override
 	public void assertException(RuntimeException error) {
 		OtelFinishedSpan.AssertingThrowable throwable = (OtelFinishedSpan.AssertingThrowable) this.tracerTest()
-				.handler().reportedSpans().get(0).error();
+				.handler().reportedSpans().get(0).getError();
 		String message = throwable.attributes.get(AttributeKey.stringKey("exception.message"));
 		BDDAssertions.then(message).isEqualTo(error.getMessage());
 	}
