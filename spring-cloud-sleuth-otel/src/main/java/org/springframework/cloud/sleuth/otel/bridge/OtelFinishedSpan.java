@@ -70,7 +70,7 @@ public class OtelFinishedSpan implements FinishedSpan {
 		if (this.tags.isEmpty()) {
 			this.spanData.getAttributes().forEach(new AttributeConsumer() {
 				@Override
-				public <T> void consume(AttributeKey<T> key, T value) {
+				public <T> void accept(AttributeKey<T> key, T value) {
 					tags.put(key.getKey(), String.valueOf(value));
 				}
 			});

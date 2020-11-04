@@ -17,7 +17,7 @@
 package org.springframework.cloud.sleuth.otel.log;
 
 import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.exporters.logging.LoggingSpanExporter;
+import io.opentelemetry.exporter.logging.LoggingSpanExporter;
 import org.slf4j.MDC;
 
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;

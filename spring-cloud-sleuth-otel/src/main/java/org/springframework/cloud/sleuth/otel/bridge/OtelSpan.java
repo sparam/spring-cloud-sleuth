@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.trace.EndSpanOptions;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
@@ -226,8 +225,8 @@ class SpanFromSpanContext implements io.opentelemetry.api.trace.Span {
 	}
 
 	@Override
-	public void end(EndSpanOptions endOptions) {
-		span.end(endOptions);
+	public void end(long l) {
+		span.end(l);
 	}
 
 	@Override

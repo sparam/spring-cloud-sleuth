@@ -35,10 +35,10 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.context.propagation.DefaultContextPropagators;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.extensions.trace.propagation.AwsXRayPropagator;
-import io.opentelemetry.extensions.trace.propagation.B3Propagator;
-import io.opentelemetry.extensions.trace.propagation.JaegerPropagator;
-import io.opentelemetry.extensions.trace.propagation.OtTracerPropagator;
+import io.opentelemetry.extension.trace.propagation.AwsXRayPropagator;
+import io.opentelemetry.extension.trace.propagation.B3Propagator;
+import io.opentelemetry.extension.trace.propagation.JaegerPropagator;
+import io.opentelemetry.extension.trace.propagation.OtTracerPropagator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -121,19 +121,19 @@ class CompositeTextMapPropagator implements TextMapPropagator {
 
 	CompositeTextMapPropagator(BeanFactory beanFactory, SleuthPropagationProperties properties) {
 		this.properties = properties;
-		if (isOnClasspath("io.opentelemetry.extensions.trace.propagation.AwsXRayPropagator")) {
+		if (isOnClasspath("io.opentelemetry.extension.trace.propagation.AwsXRayPropagator")) {
 			this.mapping.put(SleuthPropagationProperties.PropagationType.AWS, beanFactory
 					.getBeanProvider(AwsXRayPropagator.class).getIfAvailable(AwsXRayPropagator::getInstance));
 		}
-		if (isOnClasspath("io.opentelemetry.extensions.trace.propagation.B3Propagator")) {
+		if (isOnClasspath("io.opentelemetry.extension.trace.propagation.B3Propagator")) {
 			this.mapping.put(SleuthPropagationProperties.PropagationType.B3,
 					beanFactory.getBeanProvider(B3Propagator.class).getIfAvailable(B3Propagator::getInstance));
 		}
-		if (isOnClasspath("io.opentelemetry.extensions.trace.propagation.JaegerPropagator")) {
+		if (isOnClasspath("io.opentelemetry.extension.trace.propagation.JaegerPropagator")) {
 			this.mapping.put(SleuthPropagationProperties.PropagationType.JAEGER,
 					beanFactory.getBeanProvider(JaegerPropagator.class).getIfAvailable(JaegerPropagator::getInstance));
 		}
-		if (isOnClasspath("io.opentelemetry.extensions.trace.propagation.OtTracerPropagator")) {
+		if (isOnClasspath("io.opentelemetry.extension.trace.propagation.OtTracerPropagator")) {
 			this.mapping.put(SleuthPropagationProperties.PropagationType.OT_TRACER, beanFactory
 					.getBeanProvider(OtTracerPropagator.class).getIfAvailable(OtTracerPropagator::getInstance));
 		}

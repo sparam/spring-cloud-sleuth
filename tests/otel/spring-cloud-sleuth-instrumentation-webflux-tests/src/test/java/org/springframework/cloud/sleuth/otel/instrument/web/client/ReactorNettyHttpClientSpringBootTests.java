@@ -22,7 +22,7 @@ import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceId;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.propagation.TextMapPropagator;
-import io.opentelemetry.extensions.trace.propagation.B3Propagator;
+import io.opentelemetry.extension.trace.propagation.B3Propagator;
 import io.opentelemetry.sdk.trace.samplers.Sampler;
 import org.assertj.core.api.Assertions;
 

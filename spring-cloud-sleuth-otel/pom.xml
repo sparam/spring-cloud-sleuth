@@ -97,7 +97,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporters-logging</artifactId>
+			<artifactId>opentelemetry-exporter-logging</artifactId>
 			<optional>true</optional>
 			<exclusions>
 				<exclusion>
