@@ -78,8 +78,8 @@ public class WebFluxBaggageTests {
 
 	private String requestWithBaggage(String path) {
 		return new TestRestTemplate().exchange(
-					RequestEntity.get(URI.create("http://localhost:" + port + path)).header("baggage", "super").build(),
-					String.class).getBody();
+				RequestEntity.get(URI.create("http://localhost:" + port + path)).header("baggage", "super").build(),
+				String.class).getBody();
 	}
 
 	private void thenBaggageWasPropagatedViaHttpClient() throws InterruptedException {

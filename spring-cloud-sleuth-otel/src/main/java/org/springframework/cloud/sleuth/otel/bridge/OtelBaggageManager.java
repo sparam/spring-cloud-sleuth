@@ -161,8 +161,11 @@ class CompositeBaggage implements io.opentelemetry.api.baggage.Baggage {
 
 	private final Deque<Context> stack;
 
+	private final Collection<Entry> entries;
+
 	CompositeBaggage(Deque<Context> stack) {
 		this.stack = stack;
+		this.entries = getEntries();
 	}
 
 	Collection<Entry> getEntries() {
@@ -180,17 +183,17 @@ class CompositeBaggage implements io.opentelemetry.api.baggage.Baggage {
 
 	@Override
 	public int size() {
-		return 0;
+		return this.entries.size();
 	}
 
 	@Override
 	public void forEach(BaggageConsumer consumer) {
-
+		this.entries.forEach(entry -> consumer.accept(entry.getKey(), entry.getValue(), entry.getEntryMetadata()));
 	}
 
 	@Override
 	public String getEntryValue(String entryKey) {
-		return getEntries().stream().filter(entry -> entryKey.equals(entry.getKey())).map(Entry::getValue).findFirst()
+		return this.entries.stream().filter(entry -> entryKey.equals(entry.getKey())).map(Entry::getValue).findFirst()
 				.orElse(null);
 	}
 
@@ -250,4 +253,5 @@ class Entry {
 		baggage.forEach((key, value, metadata) -> list.add(new Entry(key, value, metadata)));
 		return list;
 	}
+
 }
