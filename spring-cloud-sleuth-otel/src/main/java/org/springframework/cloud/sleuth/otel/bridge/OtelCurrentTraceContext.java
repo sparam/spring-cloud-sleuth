@@ -23,7 +23,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import io.opentelemetry.api.baggage.Baggage;
-import io.opentelemetry.api.baggage.Entry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
@@ -95,8 +94,8 @@ public class OtelCurrentTraceContext implements CurrentTraceContext, ContextStor
 	}
 
 	private boolean sameBaggage(Baggage currentBaggage, Baggage oldBaggage) {
-		Set<Entry> entries = new HashSet<>(currentBaggage.getEntries());
-		entries.removeAll(oldBaggage.getEntries());
+		Set<Entry> entries = new HashSet<>(Entry.fromBaggage(currentBaggage));
+		entries.removeAll(Entry.fromBaggage(oldBaggage));
 		return entries.isEmpty();
 	}
 

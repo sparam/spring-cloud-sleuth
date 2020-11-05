@@ -19,7 +19,6 @@ package org.springframework.cloud.sleuth.otel.bridge;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.opentelemetry.api.baggage.Baggage;
-import io.opentelemetry.api.baggage.Entry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
@@ -108,7 +107,7 @@ public class OtelBaggageInScope implements BaggageInScope {
 		}
 		this.publisher.publishEvent(new BaggageChanged(this, baggage, entry().getKey(), value));
 		Entry previous = entry();
-		this.entry.set(Entry.create(previous.getKey(), value, previous.getEntryMetadata()));
+		this.entry.set(new Entry(previous.getKey(), value, previous.getEntryMetadata()));
 		return this;
 	}
 

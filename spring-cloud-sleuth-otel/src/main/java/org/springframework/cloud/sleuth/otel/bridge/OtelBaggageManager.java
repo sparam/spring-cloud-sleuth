@@ -17,15 +17,17 @@
 package org.springframework.cloud.sleuth.otel.bridge;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.opentelemetry.api.baggage.Baggage;
-import io.opentelemetry.api.baggage.Entry;
+import io.opentelemetry.api.baggage.BaggageConsumer;
 import io.opentelemetry.api.baggage.EntryMetadata;
 import io.opentelemetry.context.Context;
 
@@ -116,7 +118,7 @@ public class OtelBaggageManager {
 	}
 
 	private Entry entryForName(String name, io.opentelemetry.api.baggage.Baggage baggage) {
-		return baggage.getEntries().stream().filter(e -> e.getKey().toLowerCase().equals(name.toLowerCase()))
+		return Entry.fromBaggage(baggage).stream().filter(e -> e.getKey().toLowerCase().equals(name.toLowerCase()))
 				.findFirst().orElse(null);
 	}
 
@@ -139,7 +141,7 @@ public class OtelBaggageManager {
 		boolean remoteField = remoteFieldsFields.stream().map(String::toLowerCase)
 				.anyMatch(s -> s.equals(name.toLowerCase()));
 		EntryMetadata entryMetadata = EntryMetadata.create(propagationString(remoteField));
-		Entry entry = Entry.create(name, value, entryMetadata);
+		Entry entry = new Entry(name, value, entryMetadata);
 		return new OtelBaggageInScope(this, this.currentTraceContext, this.publisher, this.sleuthBaggageProperties,
 				entry);
 	}
@@ -163,8 +165,7 @@ class CompositeBaggage implements io.opentelemetry.api.baggage.Baggage {
 		this.stack = stack;
 	}
 
-	@Override
-	public Collection<Entry> getEntries() {
+	Collection<Entry> getEntries() {
 		// parent baggage foo=bar
 		// child baggage foo=baz - we want the last one to override the previous one
 		Map<String, Entry> map = new HashMap<>();
@@ -172,10 +173,19 @@ class CompositeBaggage implements io.opentelemetry.api.baggage.Baggage {
 		while (iterator.hasNext()) {
 			Context next = iterator.next();
 			Baggage baggage = Baggage.fromContext(next);
-			Collection<Entry> entries = baggage.getEntries();
-			entries.forEach(entry -> map.put(entry.getKey(), entry));
+			baggage.forEach((key, value, metadata) -> map.put(key, new Entry(key, value, metadata)));
 		}
 		return map.values();
+	}
+
+	@Override
+	public int size() {
+		return 0;
+	}
+
+	@Override
+	public void forEach(BaggageConsumer consumer) {
+
 	}
 
 	@Override
@@ -189,4 +199,55 @@ class CompositeBaggage implements io.opentelemetry.api.baggage.Baggage {
 		return Baggage.builder();
 	}
 
+}
+
+class Entry {
+
+	final String key;
+
+	final String value;
+
+	final EntryMetadata entryMetadata;
+
+	Entry(String key, String value, EntryMetadata entryMetadata) {
+		this.key = key;
+		this.value = value;
+		this.entryMetadata = entryMetadata;
+	}
+
+	String getKey() {
+		return this.key;
+	}
+
+	String getValue() {
+		return this.value;
+	}
+
+	EntryMetadata getEntryMetadata() {
+		return this.entryMetadata;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+		Entry entry = (Entry) o;
+		return Objects.equals(this.key, entry.key) && Objects.equals(this.value, entry.value)
+				&& Objects.equals(this.entryMetadata, entry.entryMetadata);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.key, this.value, this.entryMetadata);
+	}
+
+	static List<Entry> fromBaggage(Baggage baggage) {
+		List<Entry> list = new ArrayList<>(baggage.size());
+		baggage.forEach((key, value, metadata) -> list.add(new Entry(key, value, metadata)));
+		return list;
+	}
 }
