@@ -19,6 +19,7 @@ package sample;
 import java.util.Random;
 import java.util.concurrent.Callable;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -83,10 +84,13 @@ public class SampleController implements ApplicationListener<ServletWebServerIni
 
 	@RequestMapping("/hi2")
 	public String hi2() throws InterruptedException {
+		io.opentelemetry.api.trace.Span otelSpan = GlobalOpenTelemetry.getTracer("raptor-open-telemetry","raptor:4.1.0").spanBuilder("OTel Test Span").startSpan();
+
 		log.info("hi2");
 		int millis = this.random.nextInt(1000);
 		Thread.sleep(millis);
-		this.tracer.currentSpan().tag("random-sleep-millis", String.valueOf(millis));
+		otelSpan.setAttribute("hello-random-sleep-millis", String.valueOf(millis));
+		otelSpan.end();
 		return "hi2";
 	}
 

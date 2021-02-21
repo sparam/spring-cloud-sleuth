@@ -16,10 +16,6 @@
 
 package sample;
 
-import brave.handler.MutableSpan;
-import brave.handler.SpanHandler;
-import brave.propagation.TraceContext;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -44,16 +40,16 @@ public class SampleZipkinApplication {
 	}
 
 	// Use this for debugging (or if there is no Zipkin server running on port 9411)
-	@Bean
-	@ConditionalOnProperty(value = "sample.zipkin.enabled", havingValue = "false")
-	public SpanHandler spanHandler() {
-		return new SpanHandler() {
-			@Override
-			public boolean end(TraceContext context, MutableSpan span, Cause cause) {
-				System.out.println(span.toString());
-				return true;
-			}
-		};
-	}
+	// @Bean
+	// @ConditionalOnProperty(value = "sample.zipkin.enabled", havingValue = "false")
+	// public SpanHandler spanHandler() {
+	// return new SpanHandler() {
+	// @Override
+	// public boolean end(TraceContext context, MutableSpan span, Cause cause) {
+	// System.out.println(span.toString());
+	// return true;
+	// }
+	// };
+	// }
 
 }
