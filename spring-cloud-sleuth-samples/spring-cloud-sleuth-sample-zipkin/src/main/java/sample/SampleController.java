@@ -84,7 +84,7 @@ public class SampleController implements ApplicationListener<ServletWebServerIni
 
 	@RequestMapping("/hi2")
 	public String hi2() throws InterruptedException {
-		io.opentelemetry.api.trace.Span otelSpan = GlobalOpenTelemetry.getTracer("raptor-open-telemetry","raptor:4.1.0").spanBuilder("OTel Test Span").startSpan();
+		io.opentelemetry.api.trace.Span otelSpan = GlobalOpenTelemetry.getTracer("test-open-telemetry","otel-test4.1.0").spanBuilder("OTel Test Span").startSpan();
 
 		log.info("hi2");
 		int millis = this.random.nextInt(1000);
